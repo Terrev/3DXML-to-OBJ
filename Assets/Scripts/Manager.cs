@@ -16,35 +16,54 @@ public class Manager : MonoBehaviour
 	public static string fileName = null;
 	public static string path = null;
 	public static bool atStart = true;
+	static bool exportWithWelding = true;
 	bool meshSizeFlag = false;
 	bool exitConfirmation = false;
+	System.IO.DirectoryInfo directoryInfo;
 	public Light sceneLight;
 	public Material testMaterial;
 	public Material testMaterialUV;
+	
+	// Awkwardly tacked on stuff for changing the camera postion in LXFs/LXFMLs
+	string inputFileNameLxf = "FileName";
+	string fileNameLxf = null;
+	string pathLxf = null;
 	
     void OnGUI()
 	{
 		if (atStart)
 		{
-			inputFileName = GUI.TextField(new Rect(10, 10, 250, 25), inputFileName, 100);
-			if (GUI.Button(new Rect(10, 40, 250, 25), "Export with welding"))
+			GUI.Box(new Rect(10, 10, 250, 115), "Convert 3DXML to OBJ");
+			inputFileName = GUI.TextField(new Rect(15, 35, 240, 25), inputFileName, 100);
+			if (GUI.Button(new Rect(15, 65, 240, 25), "Convert"))
 			{
-				DoStuff(true, true);
+				DoStuff(true, exportWithWelding);
 			}
-			if (GUI.Button(new Rect(10, 70, 250, 25), "Export without welding"))
+			exportWithWelding = GUI.Toggle (new Rect (15, 95, 240, 25), exportWithWelding, " Weld duplicate vertices");
+			/* Alternative to toggle
+			if (GUI.Button(new Rect(15, 95, 240, 25), "Convert without welding"))
 			{
 				DoStuff(true, false);
 			}
-			#if UNITY_EDITOR // Just for testing things
-			if (GUI.Button(new Rect(10, 100, 250, 25), "View with welding"))
+			*/
+			/* Old in-editor testing stuff
+			#if UNITY_EDITOR
+			if (GUI.Button(new Rect(10, 130, 250, 25), "View with welding"))
 			{
 				DoStuff(false, true);
 			}
-			if (GUI.Button(new Rect(10, 130, 250, 25), "View without welding"))
+			if (GUI.Button(new Rect(10, 160, 250, 25), "View without welding"))
 			{
 				DoStuff(false, false);
 			}
 			#endif
+			*/
+			GUI.Box(new Rect(10, 135, 250, 85), "Move camera to origin in LXF/LXFML");
+			inputFileNameLxf = GUI.TextField(new Rect(15, 160, 240, 25), inputFileNameLxf, 100);
+			if (GUI.Button(new Rect(15, 190, 240, 25), "Move camera"))
+			{
+				LxfOrLxfml();
+			}
 		}
 		if (!atStart)
 		{
@@ -63,15 +82,15 @@ public class Manager : MonoBehaviour
 					sceneLight.shadows = LightShadows.Soft;
 				}
 			}
-			GUI.Box (new Rect (0,Screen.height - 40,Screen.width,40), "Exported to:\n" + path);
+			GUI.Box(new Rect(0,Screen.height - 40,Screen.width,40), "Exported to:\n" + path);
 		}
 		if (meshSizeFlag)
 		{
-			GUI.Box (new Rect (0,Screen.height - 80,Screen.width,40), "One or more meshes are too large to view in this program.\nYour exported model is unaffected by this.");
+			GUI.Box(new Rect(0,Screen.height - 80,Screen.width,40), "One or more meshes are too large to view in this program.\nYour exported model is unaffected by this.");
 		}
 		if (exitConfirmation)
 		{
-			GUI.Box (new Rect (Screen.width / 2 - 65,Screen.height / 2 - 25,130,60), "Exit?");
+			GUI.Box(new Rect(Screen.width / 2 - 65,Screen.height / 2 - 25,130,60), "Exit?");
 			if(GUI.Button(new Rect(Screen.width / 2 - 50 - 5,Screen.height / 2,50,25), "Yes"))
 			{
 				Application.Quit();
@@ -89,6 +108,7 @@ public class Manager : MonoBehaviour
 		meshesUV.Clear();
 		atStart = true;
 		meshSizeFlag = false;
+		directoryInfo = System.IO.Directory.GetParent(Application.dataPath);
 	}
 	
 	void Update()
@@ -194,7 +214,6 @@ public class Manager : MonoBehaviour
 			fileName = inputFileName;
 		}
 		
-		System.IO.DirectoryInfo directoryInfo = System.IO.Directory.GetParent(Application.dataPath);
 		path = directoryInfo.FullName + "\\Models\\" + fileName;
 		
 		if (File.Exists(path + ".3dxml"))
@@ -236,7 +255,7 @@ public class Manager : MonoBehaviour
 		}
 		else
 		{
-			inputFileName = "Model not found!";
+			inputFileName = "3DXML not found!";
 		}
 	}
 	
@@ -289,5 +308,87 @@ public class Manager : MonoBehaviour
 		}
 		
 		return customMesh;
+	}
+	
+	void LxfOrLxfml()
+	{
+		// This is a tad sloppy, but whatever, it works
+		if (inputFileNameLxf.EndsWith(".lxf", true, null))
+		{
+			fileNameLxf = inputFileNameLxf.Substring(0, inputFileNameLxf.Length - 4);
+			pathLxf = directoryInfo.FullName + "\\Models\\" + fileNameLxf;
+			if (File.Exists(pathLxf + ".lxf"))
+			{
+				EditLxf();
+			}
+			else
+			{
+				inputFileNameLxf = "LXF not found!";
+			}
+		}
+		else if (inputFileNameLxf.EndsWith(".lxfml", true, null))
+		{
+			fileNameLxf = inputFileNameLxf.Substring(0, inputFileNameLxf.Length - 6);
+			pathLxf = directoryInfo.FullName + "\\Models\\" + fileNameLxf;
+			if (File.Exists(pathLxf + ".lxfml"))
+			{
+				EditLxfml();
+			}
+			else
+			{
+				inputFileNameLxf = "LXFML not found!";
+			}
+		}
+		else
+		{
+			fileNameLxf = inputFileNameLxf;
+			pathLxf = directoryInfo.FullName + "\\Models\\" + fileNameLxf;
+			if (File.Exists(pathLxf + ".lxfml"))
+			{
+				EditLxfml();
+			}
+			else if (File.Exists(pathLxf + ".lxf"))
+			{
+				EditLxf();
+			}
+			else
+			{
+				inputFileNameLxf = "LXF or LXFML not found!";
+			}
+		}
+	}
+	
+	void EditLxf()
+	{
+		string unzippedLocation = Application.temporaryCachePath + "\\" + "unzip";
+		ZipUtil.Unzip(pathLxf + ".lxf", unzippedLocation);
+		
+		// As far as I know, the LXFMLs within the LXFs produced by LDD are always named IMAGE100.LXFML... But just in case the name is ever different, we search for it
+		string[] files = System.IO.Directory.GetFiles(unzippedLocation, "*.lxfml");
+		string lxfmlFileName = Path.GetFileName(files[0]);
+		
+		XmlDocument xmlDocument = new XmlDocument();
+		xmlDocument.LoadXml(System.IO.File.ReadAllText(unzippedLocation + "\\" + lxfmlFileName));
+		
+		XmlElement camera = (XmlElement)xmlDocument.DocumentElement.SelectSingleNode(".//Camera");
+		camera.SetAttribute("distance", "0");
+		camera.SetAttribute("transformation", "1,0,0,0,1,0,0,0,1,0,0,0");
+		
+		xmlDocument.Save(pathLxf + " edited.lxfml");
+		Directory.Delete(unzippedLocation, true);
+		inputFileNameLxf = "Saved as: " + fileNameLxf + " edited.lxfml";
+	}
+	
+	void EditLxfml()
+	{
+		XmlDocument xmlDocument = new XmlDocument();
+		xmlDocument.LoadXml(System.IO.File.ReadAllText(pathLxf + ".lxfml"));
+		
+		XmlElement camera = (XmlElement)xmlDocument.DocumentElement.SelectSingleNode(".//Camera");
+		camera.SetAttribute("distance", "0");
+		camera.SetAttribute("transformation", "1,0,0,0,1,0,0,0,1,0,0,0");
+		
+		xmlDocument.Save(pathLxf + " edited.lxfml");
+		inputFileNameLxf = "Saved as: " + fileNameLxf + " edited.lxfml";
 	}
 }
