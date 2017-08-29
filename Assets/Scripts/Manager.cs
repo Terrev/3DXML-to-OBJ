@@ -12,6 +12,10 @@ public class Manager : MonoBehaviour
 	XmlNamespaceManager xmlNamespaceManager;
 	public static List<CustomMesh> meshes = new List<CustomMesh>();
 	public static List<CustomMesh> meshesUV = new List<CustomMesh>();
+	public static List<Color> colors = new List<Color>();
+	public static List<Texture2D> textures = new List<Texture2D>();
+	public static List<Texture2D> usedTextures = new List<Texture2D>();
+	public static bool hasLoadedTextures;
 	public static string inputFileName = "FileName";
 	public static string fileName = null;
 	public static string path = null;
@@ -21,15 +25,37 @@ public class Manager : MonoBehaviour
 	bool exitConfirmation = false;
 	System.IO.DirectoryInfo directoryInfo;
 	public Light sceneLight;
-	public Material testMaterial;
-	public Material testMaterialUV;
+	public Material baseMaterial;
+	public Material baseMaterialTransparent;
+	public Material baseMaterialUV;
 	
 	// Awkwardly tacked on stuff for changing the camera postion in LXFs/LXFMLs
 	string inputFileNameLxf = "FileName";
 	string fileNameLxf = null;
 	string pathLxf = null;
 	
-    void OnGUI()
+	void Start()
+	{
+		meshes.Clear();
+		meshesUV.Clear();
+		colors.Clear();
+		textures.Clear();
+		usedTextures.Clear();
+		hasLoadedTextures = false;
+		atStart = true;
+		meshSizeFlag = false;
+		directoryInfo = System.IO.Directory.GetParent(Application.dataPath);
+	}
+	
+	void Update()
+	{
+		if (Input.GetKeyDown("escape"))
+		{
+			exitConfirmation = !exitConfirmation;
+		}
+	}
+	
+	void OnGUI()
 	{
 		if (atStart)
 		{
@@ -40,24 +66,19 @@ public class Manager : MonoBehaviour
 				DoStuff(true, exportWithWelding);
 			}
 			exportWithWelding = GUI.Toggle (new Rect (15, 95, 240, 25), exportWithWelding, " Weld duplicate vertices");
-			/* Alternative to toggle
-			if (GUI.Button(new Rect(15, 95, 240, 25), "Convert without welding"))
-			{
-				DoStuff(true, false);
-			}
-			*/
-			/* Old in-editor testing stuff
+			
+			// Just for in-editor testing
 			#if UNITY_EDITOR
-			if (GUI.Button(new Rect(10, 130, 250, 25), "View with welding"))
+			if (GUI.Button(new Rect(270, 10, 250, 25), "View with welding"))
 			{
 				DoStuff(false, true);
 			}
-			if (GUI.Button(new Rect(10, 160, 250, 25), "View without welding"))
+			if (GUI.Button(new Rect(270, 40, 250, 25), "View without welding"))
 			{
 				DoStuff(false, false);
 			}
 			#endif
-			*/
+			
 			GUI.Box(new Rect(10, 135, 250, 85), "Move camera to origin in LXF/LXFML");
 			inputFileNameLxf = GUI.TextField(new Rect(15, 160, 240, 25), inputFileNameLxf, 100);
 			if (GUI.Button(new Rect(15, 190, 240, 25), "Move camera"))
@@ -100,23 +121,6 @@ public class Manager : MonoBehaviour
 				exitConfirmation = false;
 			}
 		}
-    }
-	
-	void Start()
-	{
-		meshes.Clear();
-		meshesUV.Clear();
-		atStart = true;
-		meshSizeFlag = false;
-		directoryInfo = System.IO.Directory.GetParent(Application.dataPath);
-	}
-	
-	void Update()
-	{
-		if (Input.GetKeyDown("escape"))
-		{
-			exitConfirmation = !exitConfirmation;
-		}
 	}
 	
 	void DoStuff(bool export, bool weld)
@@ -148,14 +152,25 @@ public class Manager : MonoBehaviour
 			// Load the meshes into Unity's mesh class, if they fit into its vertex limit
 			for (int i = 0; i < meshes.Count; i++)
 			{
-				Debug.Log("Mesh" + i + ": " + meshes[i].vertices.Length + " verts, " + (meshes[i].triangles.Length / 3) + " tris");
+				//Debug.Log("Mesh" + i + ": " + meshes[i].vertices.Length + " verts, " + (meshes[i].triangles.Length / 3) + " tris");
 				if (meshes[i].vertices.Length < 65534 && (meshes[i].triangles.Length / 3) < 65534)
 				{
 					GameObject newGameObject = new GameObject("Mesh" + i);
 					newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
 					MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
 					MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
-					meshRenderer.material = testMaterial;
+					if (colors[meshes[i].material].a < 1.0f)
+					{
+						meshRenderer.material = baseMaterialTransparent;
+					}
+					else
+					{
+						meshRenderer.material = baseMaterial;
+					}
+					// Technically, this is an ineffecient way to do this; it leads to each mesh having its own unique material
+					// In practice, it hardly matters at all - no batching happens anyway because of the negative scale on x
+					// And even when the scale isn't set to negative on x, hardly any batching happens because LDD has already combined so much
+					meshRenderer.material.color = colors[meshes[i].material];
 					
 					Mesh mesh = new Mesh();
 					meshFilter.mesh = mesh;
@@ -172,14 +187,16 @@ public class Manager : MonoBehaviour
 			
 			for (int i = 0; i < meshesUV.Count; i++)
 			{
-				Debug.Log("MeshUV" + i + ": " + meshesUV[i].vertices.Length + " verts, " + (meshesUV[i].triangles.Length / 3) + " tris, " + meshesUV[i].uv.Length + " UVs");
+				//Debug.Log("MeshUV" + i + ": " + meshesUV[i].vertices.Length + " verts, " + (meshesUV[i].triangles.Length / 3) + " tris, " + meshesUV[i].uv.Length + " UVs");
 				if (meshesUV[i].vertices.Length < 65534 && (meshesUV[i].triangles.Length / 3) < 65534)
 				{
 					GameObject newGameObject = new GameObject("MeshUV" + i);
 					newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
 					MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
 					MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
-					meshRenderer.material = testMaterialUV;
+					meshRenderer.material = baseMaterialUV;
+					// Like setting the colors on the main meshes above, this could be made more effecient, but it doesn't actually matter much
+					meshRenderer.material.mainTexture = textures[meshesUV[i].material];
 					
 					Mesh mesh = new Mesh();
 					meshFilter.mesh = mesh;
@@ -232,7 +249,7 @@ public class Manager : MonoBehaviour
 			xmlNamespaceManager.AddNamespace("xlink", "http://www.w3.org/1999/xlink");
 			
 			XmlNodeList representations = xmlDocument.DocumentElement.SelectNodes("//a:Representation", xmlNamespaceManager);
-			Debug.Log("Representations: " + representations.Count);
+			//Debug.Log("Representations: " + representations.Count);
 			
 			foreach (XmlNode representation in representations)
 			{
@@ -246,6 +263,34 @@ public class Manager : MonoBehaviour
 				else if (representation.SelectSingleNode(".//a:Face[@triangles]", xmlNamespaceManager) != null
 				&& representation.SelectSingleNode(".//a:TextureCoordinates", xmlNamespaceManager) != null)
 				{
+					// Texture loading
+					if (!hasLoadedTextures)
+					{
+						XmlNodeList xmlTextures = xmlDocument.DocumentElement.SelectNodes("//a:Pixel", xmlNamespaceManager);
+						foreach (XmlNode texture in xmlTextures)
+						{
+							Texture2D tex1 = new Texture2D(int.Parse(texture.Attributes["width"].Value), int.Parse(texture.Attributes["height"].Value), TextureFormat.RGBA32, false);
+							byte[] array = Convert.FromBase64String(texture.SelectSingleNode(".//a:Pixels", xmlNamespaceManager).InnerText);
+							tex1.LoadRawTextureData(array);
+							tex1.Apply();
+							
+							// Flipping
+							Texture2D tex2 = new Texture2D(tex1.width, tex1.height);
+							int xN = tex1.width;
+							int yN = tex1.height;
+							for (int i = 0; i < xN; i++)
+							{
+								for (int j = 0; j < yN; j++)
+								{
+									tex2.SetPixel(j, xN - i - 1, tex1.GetPixel(j, i));
+								}
+							}
+							tex2.wrapMode = TextureWrapMode.Clamp;
+							tex2.Apply();
+							textures.Add(tex2);
+							hasLoadedTextures = true;
+						}
+					}
 					meshesUV.Add(RepresentationToMesh(representation));
 				}
 			}
@@ -305,14 +350,47 @@ public class Manager : MonoBehaviour
 				uvArray[i] = new Vector2(uvFloatArray[j], -uvFloatArray[j + 1] + 1.0f);
 			}
 			customMesh.uv = uvArray;
+			
+			XmlNode materialNode = representation.SelectSingleNode(".//a:Material", xmlNamespaceManager);
+			string textureString = materialNode.Attributes["texture"].Value;
+			customMesh.material = int.Parse(textureString.Substring(20)) - 1;
+		}
+		else
+		{
+			XmlNode colorNode = representation.SelectSingleNode(".//a:Color", xmlNamespaceManager);
+			Color meshColor = new Color(float.Parse(colorNode.Attributes["red"].Value), float.Parse(colorNode.Attributes["green"].Value), float.Parse(colorNode.Attributes["blue"].Value), float.Parse(colorNode.Attributes["alpha"].Value));
+			
+			int hasColorResult = AlreadyHasColor(meshColor);
+			if (hasColorResult == -1)
+			{
+				colors.Add(meshColor);
+				customMesh.material = colors.Count - 1;
+				//Debug.Log("Adding new color");
+			}
+			else
+			{
+				customMesh.material = hasColorResult;
+				//Debug.Log("Using existing color " + hasColorResult);
+			}
 		}
 		
 		return customMesh;
 	}
 	
+	int AlreadyHasColor(Color color)
+	{
+		for (int i = 0; i < colors.Count; i++)
+		{
+			if (colors[i].r == color.r && colors[i].g == color.g && colors[i].b == color.b && colors[i].a == color.a)
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+	
 	void LxfOrLxfml()
 	{
-		// This is a tad sloppy, but whatever, it works
 		if (inputFileNameLxf.EndsWith(".lxf", true, null))
 		{
 			fileNameLxf = inputFileNameLxf.Substring(0, inputFileNameLxf.Length - 4);

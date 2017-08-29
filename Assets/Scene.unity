@@ -134,7 +134,7 @@ Light:
   serializedVersion: 8
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 0.9
+  m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_CookieSize: 10
@@ -201,8 +201,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sceneLight: {fileID: 790075344}
-  testMaterial: {fileID: 2100000, guid: 92e699ce7b74b2e498e5da16d058d1b9, type: 2}
-  testMaterialUV: {fileID: 2100000, guid: 4fc4629f4980a1c4fa86d1df191d31e4, type: 2}
+  baseMaterial: {fileID: 2100000, guid: 92e699ce7b74b2e498e5da16d058d1b9, type: 2}
+  baseMaterialTransparent: {fileID: 2100000, guid: b2c6b536dc99b68439df9d2c7fe43277,
+    type: 2}
+  baseMaterialUV: {fileID: 2100000, guid: 4fc4629f4980a1c4fa86d1df191d31e4, type: 2}
 --- !u!4 &1693477195
 Transform:
   m_ObjectHideFlags: 0
