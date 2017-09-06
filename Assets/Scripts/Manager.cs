@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Xml;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,18 +13,24 @@ public class Manager : MonoBehaviour
 	XmlNamespaceManager xmlNamespaceManager;
 	public static List<CustomMesh> meshes = new List<CustomMesh>();
 	public static List<CustomMesh> meshesUV = new List<CustomMesh>();
-	public static List<Color> colors = new List<Color>();
-	public static List<Texture2D> textures = new List<Texture2D>();
-	public static List<Texture2D> usedTextures = new List<Texture2D>();
+	public static List<CustomColor> colors = new List<CustomColor>();
+	public static List<CustomColor> legoColors = new List<CustomColor>();
+	public static List<CustomColor> sortedColors = new List<CustomColor>();
+	public static List<CustomTexture> textures = new List<CustomTexture>();
+	public static List<CustomTexture> usedTextures = new List<CustomTexture>();
 	public static bool hasLoadedTextures;
 	public static string inputFileName = "FileName";
 	public static string fileName = null;
 	public static string path = null;
 	public static bool atStart = true;
 	static bool exportWithWelding = true;
+	string[] customPaletteFiles;
+	List<string> paletteChoices = new List<string>();
+	static int selectedPalette = 0;
 	bool meshSizeFlag = false;
 	bool exitConfirmation = false;
-	System.IO.DirectoryInfo directoryInfo;
+	static bool developerMenu = false;
+	DirectoryInfo directoryInfo;
 	public Light sceneLight;
 	public Material baseMaterial;
 	public Material baseMaterialTransparent;
@@ -39,19 +46,62 @@ public class Manager : MonoBehaviour
 		meshes.Clear();
 		meshesUV.Clear();
 		colors.Clear();
+		legoColors.Clear();
+		sortedColors.Clear();
 		textures.Clear();
 		usedTextures.Clear();
 		hasLoadedTextures = false;
 		atStart = true;
 		meshSizeFlag = false;
-		directoryInfo = System.IO.Directory.GetParent(Application.dataPath);
+		directoryInfo = Directory.GetParent(Application.dataPath);
+		
+		customPaletteFiles = Directory.GetFiles(Application.streamingAssetsPath + "\\Custom Palettes", "*.txt");
+		paletteChoices.Add("None (use LDD colors)");
+		for (int i = 0; i < customPaletteFiles.Length; i++)
+		{
+			paletteChoices.Add(Path.GetFileName(customPaletteFiles[i]));
+			paletteChoices[paletteChoices.Count - 1] = paletteChoices[paletteChoices.Count - 1].Substring(0, paletteChoices[paletteChoices.Count - 1].Length - 4);
+		}
+		
+		if (PlayerPrefs.HasKey("Export With Welding"))
+		{
+			exportWithWelding = PlayerPrefs.GetInt("Export With Welding")==1?true:false;
+		}
+		else
+		{
+			Debug.Log("No welding export setting saved");
+		}
+		
+		if (PlayerPrefs.HasKey("Selected Palette"))
+		{
+			for (int i = 0; i < paletteChoices.Count; i++)
+			{
+				if (paletteChoices[i] == PlayerPrefs.GetString("Selected Palette"))
+				{
+					selectedPalette = i;
+				}
+			}
+		}
+		else
+		{
+			Debug.Log("No selected palette saved");
+		}
 	}
 	
 	void Update()
 	{
-		if (Input.GetKeyDown("escape"))
+		if (Input.GetKeyDown(KeyCode.Escape))
 		{
 			exitConfirmation = !exitConfirmation;
+		}
+		if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.D))
+		{
+			developerMenu = !developerMenu;
+		}
+		if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.R))
+		{
+			Debug.Log("Clearing PlayerPrefs");
+			PlayerPrefs.DeleteAll();
 		}
 	}
 	
@@ -59,33 +109,45 @@ public class Manager : MonoBehaviour
 	{
 		if (atStart)
 		{
-			GUI.Box(new Rect(10, 10, 250, 115), "Convert 3DXML to OBJ");
-			inputFileName = GUI.TextField(new Rect(15, 35, 240, 25), inputFileName, 100);
-			if (GUI.Button(new Rect(15, 65, 240, 25), "Convert"))
-			{
-				DoStuff(true, exportWithWelding);
-			}
-			exportWithWelding = GUI.Toggle (new Rect (15, 95, 240, 25), exportWithWelding, " Weld duplicate vertices");
-			
-			// Just for in-editor testing
-			#if UNITY_EDITOR
-			if (GUI.Button(new Rect(270, 10, 250, 25), "View with welding"))
-			{
-				DoStuff(false, true);
-			}
-			if (GUI.Button(new Rect(270, 40, 250, 25), "View without welding"))
-			{
-				DoStuff(false, false);
-			}
-			#endif
-			
-			GUI.Box(new Rect(10, 135, 250, 85), "Move camera to origin in LXF/LXFML");
-			inputFileNameLxf = GUI.TextField(new Rect(15, 160, 240, 25), inputFileNameLxf, 100);
-			if (GUI.Button(new Rect(15, 190, 240, 25), "Move camera"))
+			GUI.Box(new Rect(10, 10, 250, 85), "Move camera to origin in LXF/LXFML");
+			inputFileNameLxf = GUI.TextField(new Rect(15, 35, 240, 25), inputFileNameLxf, 100);
+			if (GUI.Button(new Rect(15, 65, 240, 25), "Move camera"))
 			{
 				LxfOrLxfml();
 			}
+			
+			GUI.Box(new Rect(10, 105, 250, Screen.height - 115), "Convert 3DXML to OBJ");
+			inputFileName = GUI.TextField(new Rect(15, 130, 240, 25), inputFileName, 100);
+			if (GUI.Button(new Rect(15, 160, 240, 25), "Convert"))
+			{
+				DoStuff(true, exportWithWelding);
+			}
+			exportWithWelding = GUI.Toggle(new Rect (15, 190, 240, 25), exportWithWelding, " Weld duplicate vertices");
+			
+			GUI.Label (new Rect (15, 210, 240, 25), "Use custom color palette:");
+			selectedPalette = GUI.SelectionGrid (new Rect (15, 235, 240, 25 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1);
+			
+			if (developerMenu)
+			{
+				if (GUI.Button(new Rect(270, 10, 250, 25), "View without converting"))
+				{
+					DoStuff(false, exportWithWelding);
+				}
+				if (GUI.Button(new Rect(270, 40, 250, 25), "Get official colors from Materials.xml"))
+				{
+					LoadOfficialColors();
+				}
+				if (GUI.Button(new Rect(270, 70, 250, 25), "Calculate all decoration MD5s"))
+				{
+					CalculateAllDecorationMD5s();
+				}
+				if (GUI.Button(new Rect(270, 100, 250, 25), "Get LU colors"))
+				{
+					LoadLUColors();
+				}
+			}
 		}
+		
 		if (!atStart)
 		{
 			if (GUI.Button(new Rect(10, 10, 110, 25), "Back"))
@@ -103,20 +165,20 @@ public class Manager : MonoBehaviour
 					sceneLight.shadows = LightShadows.Soft;
 				}
 			}
-			GUI.Box(new Rect(0,Screen.height - 40,Screen.width,40), "Exported to:\n" + path);
+			GUI.Box(new Rect(0, Screen.height - 40, Screen.width, 40), "Exported to:\n" + path);
 		}
 		if (meshSizeFlag)
 		{
-			GUI.Box(new Rect(0,Screen.height - 80,Screen.width,40), "One or more meshes are too large to view in this program.\nYour exported model is unaffected by this.");
+			GUI.Box(new Rect(0, Screen.height - 80, Screen.width, 40), "One or more meshes are too large to view in this program.\nYour exported model is unaffected by this.");
 		}
 		if (exitConfirmation)
 		{
-			GUI.Box(new Rect(Screen.width / 2 - 65,Screen.height / 2 - 25,130,60), "Exit?");
-			if(GUI.Button(new Rect(Screen.width / 2 - 50 - 5,Screen.height / 2,50,25), "Yes"))
+			GUI.Box(new Rect(Screen.width / 2 - 55, Screen.height / 2 - 30, 110, 60), "Exit?");
+			if(GUI.Button(new Rect(Screen.width / 2 - 40 - 5, Screen.height / 2 - 5, 40, 25), "Yes"))
 			{
 				Application.Quit();
 			}
-			if(GUI.Button(new Rect(Screen.width / 2 - 50 + 55,Screen.height / 2,50,25), "No"))
+			if(GUI.Button(new Rect(Screen.width / 2 - 40 + 45, Screen.height / 2 - 5, 40, 25), "No"))
 			{
 				exitConfirmation = false;
 			}
@@ -125,6 +187,9 @@ public class Manager : MonoBehaviour
 	
 	void DoStuff(bool export, bool weld)
 	{
+		PlayerPrefs.SetInt("Export With Welding", exportWithWelding?1:0);
+		PlayerPrefs.SetString("Selected Palette", paletteChoices[selectedPalette]);
+		
 		Load();
 		if (meshes.Count + meshesUV.Count != 0)
 		{
@@ -159,7 +224,7 @@ public class Manager : MonoBehaviour
 					newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
 					MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
 					MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
-					if (colors[meshes[i].material].a < 1.0f)
+					if (colors[meshes[i].material].rgba.a < 1.0f)
 					{
 						meshRenderer.material = baseMaterialTransparent;
 					}
@@ -170,7 +235,7 @@ public class Manager : MonoBehaviour
 					// Technically, this is an ineffecient way to do this; it leads to each mesh having its own unique material
 					// In practice, it hardly matters at all - no batching happens anyway because of the negative scale on x
 					// And even when the scale isn't set to negative on x, hardly any batching happens because LDD has already combined so much
-					meshRenderer.material.color = colors[meshes[i].material];
+					meshRenderer.material.color = colors[meshes[i].material].rgba;
 					
 					Mesh mesh = new Mesh();
 					meshFilter.mesh = mesh;
@@ -196,7 +261,7 @@ public class Manager : MonoBehaviour
 					MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
 					meshRenderer.material = baseMaterialUV;
 					// Like setting the colors on the main meshes above, this could be made more effecient, but it doesn't actually matter much
-					meshRenderer.material.mainTexture = textures[meshesUV[i].material];
+					meshRenderer.material.mainTexture = textures[meshesUV[i].material].texture;
 					
 					Mesh mesh = new Mesh();
 					meshFilter.mesh = mesh;
@@ -237,11 +302,11 @@ public class Manager : MonoBehaviour
 		{
 			ZipUtil.Unzip(path + ".3dxml", path);
 			
-			string[] files = System.IO.Directory.GetFiles(path, "*.3dxml");
+			string[] files = Directory.GetFiles(path, "*.3dxml");
 			string xmlFileName = Path.GetFileName(files[0]);
 			
 			XmlDocument xmlDocument = new XmlDocument();
-			xmlDocument.LoadXml(System.IO.File.ReadAllText(path + "\\" + xmlFileName));
+			xmlDocument.LoadXml(File.ReadAllText(path + "\\" + xmlFileName));
 			
 			xmlNamespaceManager = new XmlNamespaceManager(xmlDocument.NameTable);
 			xmlNamespaceManager.AddNamespace("a", "http://www.3ds.com/xsd/3DXML");
@@ -287,13 +352,19 @@ public class Manager : MonoBehaviour
 							}
 							tex2.wrapMode = TextureWrapMode.Clamp;
 							tex2.Apply();
-							textures.Add(tex2);
+							CustomTexture newCustomTexture = new CustomTexture();
+							newCustomTexture.texture = tex2;
+							newCustomTexture.md5 = Md5Sum(System.Text.Encoding.Default.GetString(tex2.EncodeToPNG()));
+							textures.Add(newCustomTexture);
 							hasLoadedTextures = true;
 						}
 					}
 					meshesUV.Add(RepresentationToMesh(representation));
 				}
 			}
+			
+			ColorLookup();
+			TextureLookup();
 			
 			File.Delete(path + "\\" + xmlFileName);
 			File.Delete(path + "\\Manifest.xml");
@@ -358,12 +429,14 @@ public class Manager : MonoBehaviour
 		else
 		{
 			XmlNode colorNode = representation.SelectSingleNode(".//a:Color", xmlNamespaceManager);
-			Color meshColor = new Color(float.Parse(colorNode.Attributes["red"].Value), float.Parse(colorNode.Attributes["green"].Value), float.Parse(colorNode.Attributes["blue"].Value), float.Parse(colorNode.Attributes["alpha"].Value));
+			// Using Color32 and Math.Round as loading the xml's values directly into the Color class gives slightly wrong results
+			Color meshColor = new Color32((byte)Math.Round(float.Parse(colorNode.Attributes["red"].Value)*255), (byte)Math.Round(float.Parse(colorNode.Attributes["green"].Value)*255), (byte)Math.Round(float.Parse(colorNode.Attributes["blue"].Value)*255), (byte)Math.Round(float.Parse(colorNode.Attributes["alpha"].Value)*255));
 			
 			int hasColorResult = AlreadyHasColor(meshColor);
 			if (hasColorResult == -1)
 			{
-				colors.Add(meshColor);
+				colors.Add(new CustomColor());
+				colors[colors.Count - 1].rgba = meshColor;
 				customMesh.material = colors.Count - 1;
 				//Debug.Log("Adding new color");
 			}
@@ -381,12 +454,157 @@ public class Manager : MonoBehaviour
 	{
 		for (int i = 0; i < colors.Count; i++)
 		{
-			if (colors[i].r == color.r && colors[i].g == color.g && colors[i].b == color.b && colors[i].a == color.a)
+			if (colors[i].rgba == color)
 			{
 				return i;
 			}
 		}
 		return -1;
+	}
+	
+	void ColorLookup()
+	{
+		// Load official colors into legoColors
+		string[] officialColors = File.ReadAllLines(Application.streamingAssetsPath + "\\Autogenerated\\Colors.txt");
+		for (int i = 0; i < officialColors.Length; i++)
+		{
+			Char delimiter = ',';
+			string[] substrings = officialColors[i].Split(delimiter);
+			legoColors.Add(new CustomColor());
+			legoColors[legoColors.Count - 1].id = int.Parse(substrings[0]);
+			legoColors[legoColors.Count - 1].rgba = new Color32(byte.Parse(substrings[1]), byte.Parse(substrings[2]), byte.Parse(substrings[3]), byte.Parse(substrings[4]));
+		}
+		
+		// Load color names into legoColors
+		string[] colorNames = File.ReadAllLines(Application.streamingAssetsPath + "\\Color Names.txt");
+		for (int i = 0; i < colorNames.Length; i++)
+		{
+			Char delimiter = ',';
+			string[] substrings = colorNames[i].Split(delimiter);
+			for (int j = 0; j < legoColors.Count; j++)
+			{
+				if (legoColors[j].id == int.Parse(substrings[0]))
+				{
+					legoColors[j].legoName = substrings[1];
+				}
+			}
+		}
+		
+		// Check colors in 3DXML against legoColors
+		for (int i = 0; i < colors.Count; i++)
+		{
+			for (int j = 0; j < legoColors.Count; j++)
+			{
+				// Known color, name is set to official ID and official name if we have one
+				if (colors[i].rgba == legoColors[j].rgba)
+				{
+					colors[i].id = legoColors[j].id;
+					colors[i].isKnownColor = true;
+					if (legoColors[j].legoName == null)
+					{
+						colors[i].legoName = colors[i].id.ToString();
+					}
+					else
+					{
+						colors[i].legoName = colors[i].id + "_" + legoColors[j].legoName;
+					}
+					break;
+				}
+				// Unknown color, name is just the RGB values
+				else
+				{
+					colors[i].isKnownColor = false;
+					Color32 unknownColor = new Color32();
+					unknownColor = colors[i].rgba;
+					StringBuilder unknownName = new StringBuilder();
+					unknownName.Append(unknownColor.r).Append("_").Append(unknownColor.g).Append("_").Append(unknownColor.b).Append("_").Append(unknownColor.a);
+					colors[i].legoName = unknownName.ToString();
+				}
+			}
+		}
+		
+		// Apply custom palette color/name overrides
+		if (selectedPalette == 0)
+		{
+			Debug.Log("Using LDD colors");
+		}
+		else
+		{
+			Debug.Log("Using color palette " + paletteChoices[selectedPalette]);
+			string[] customColors = File.ReadAllLines(customPaletteFiles[selectedPalette - 1]);
+			for (int i = 0; i < colors.Count; i++)
+			{
+				for (int j = 0; j < customColors.Length; j++)
+				{
+					Char delimiter = ',';
+					string[] substrings = customColors[j].Split(delimiter);
+					if (colors[i].id == int.Parse(substrings[0]))
+					{
+						colors[i].rgba = new Color32(byte.Parse(substrings[1]), byte.Parse(substrings[2]), byte.Parse(substrings[3]), byte.Parse(substrings[4]));
+						if (substrings.Length >= 6)
+						{
+							colors[i].legoName = substrings[5];
+						}
+					}
+				}
+			}
+		}
+		
+		// Make sorted list of colors for mtl - known colors sorted by ID, unknown colors go on at the end in original order from file
+		List<int> colorsToSort = new List<int>();
+		List<CustomColor> unknownColors = new List<CustomColor>();
+		foreach (CustomColor customColor in colors)
+		{
+			if (customColor.isKnownColor)
+			{
+				colorsToSort.Add(customColor.id);
+			}
+			else
+			{
+				unknownColors.Add(customColor);
+			}
+		}
+		colorsToSort.Sort();
+		// For each sorted ID:
+		// - Go through colors
+		// - Find match, add color that matched the current ID to a list
+		// Results in a list of colors in the same order as the sorted IDs
+		foreach (int sortedID in colorsToSort)
+		{
+			for (int i = 0; i < colors.Count; i++)
+			{
+				if (colors[i].id == sortedID)
+				{
+					sortedColors.Add(colors[i]);
+				}
+			}
+		}
+		sortedColors.AddRange(unknownColors);
+	}
+	
+	void TextureLookup()
+	{
+		string[] decorations = File.ReadAllLines(Application.streamingAssetsPath + "\\Autogenerated\\Decorations.txt");
+		for (int i = 0; i < textures.Count; i++)
+		{
+			for (int j = 0; j < decorations.Length; j++)
+			{
+				Char delimiter = ',';
+				string[] substrings = decorations[j].Split(delimiter);
+				// If we get an MD5 match, set the texture's ID that MD5's ID
+				if (textures[i].md5 == substrings[1])
+				{
+					textures[i].id = int.Parse(substrings[0]);
+					textures[i].textureName = substrings[0];
+					break;
+				}
+				// No match, will be named their MD5s
+				else
+				{
+					textures[i].textureName = textures[i].md5;
+				}
+			}
+		}
 	}
 	
 	void LxfOrLxfml()
@@ -442,11 +660,11 @@ public class Manager : MonoBehaviour
 		ZipUtil.Unzip(pathLxf + ".lxf", unzippedLocation);
 		
 		// As far as I know, the LXFMLs within the LXFs produced by LDD are always named IMAGE100.LXFML... But just in case the name is ever different, we search for it
-		string[] files = System.IO.Directory.GetFiles(unzippedLocation, "*.lxfml");
+		string[] files = Directory.GetFiles(unzippedLocation, "*.lxfml");
 		string lxfmlFileName = Path.GetFileName(files[0]);
 		
 		XmlDocument xmlDocument = new XmlDocument();
-		xmlDocument.LoadXml(System.IO.File.ReadAllText(unzippedLocation + "\\" + lxfmlFileName));
+		xmlDocument.LoadXml(File.ReadAllText(unzippedLocation + "\\" + lxfmlFileName));
 		
 		XmlElement camera = (XmlElement)xmlDocument.DocumentElement.SelectSingleNode(".//Camera");
 		camera.SetAttribute("distance", "0");
@@ -460,7 +678,7 @@ public class Manager : MonoBehaviour
 	void EditLxfml()
 	{
 		XmlDocument xmlDocument = new XmlDocument();
-		xmlDocument.LoadXml(System.IO.File.ReadAllText(pathLxf + ".lxfml"));
+		xmlDocument.LoadXml(File.ReadAllText(pathLxf + ".lxfml"));
 		
 		XmlElement camera = (XmlElement)xmlDocument.DocumentElement.SelectSingleNode(".//Camera");
 		camera.SetAttribute("distance", "0");
@@ -468,5 +686,112 @@ public class Manager : MonoBehaviour
 		
 		xmlDocument.Save(pathLxf + " edited.lxfml");
 		inputFileNameLxf = "Saved as: " + fileNameLxf + " edited.lxfml";
+	}
+	
+	void LoadOfficialColors()
+	{
+		string materialsXmlPath = directoryInfo.FullName + "\\Materials.xml";
+		if (File.Exists(materialsXmlPath))
+		{
+			List<string> text = new List<string>();
+			
+			XmlDocument materialsXml = new XmlDocument();
+			materialsXml.LoadXml(File.ReadAllText(materialsXmlPath));
+			
+			XmlNodeList materialNodes = materialsXml.DocumentElement.SelectNodes("//a:Material");
+			foreach (XmlNode materialNode in materialNodes)
+			{
+				text.Add(materialNode.Attributes["MatID"].Value + "," + materialNode.Attributes["Red"].Value + "," + materialNode.Attributes["Green"].Value + "," + materialNode.Attributes["Blue"].Value + "," + materialNode.Attributes["Alpha"].Value);
+			}
+			File.WriteAllLines(Application.streamingAssetsPath + "\\Autogenerated\\Colors.txt", text.ToArray());
+			Debug.Log("Loaded LDD colors");
+		}
+		else
+		{
+			Debug.Log("Could not find " + materialsXmlPath);
+		}
+	}
+	
+	void CalculateAllDecorationMD5s()
+	{
+		string decorationsPath = directoryInfo.FullName + "\\Decorations";
+		if (Directory.Exists(decorationsPath))
+		{
+			List<string> text = new List<string>();
+			
+			string[] decorations = Directory.GetFiles(decorationsPath, "*.png");
+			for (int i = 0; i < decorations.Length; i++)
+			{
+				// Load texture from png
+				Texture2D texture = null;
+				byte[] fileData;
+				fileData = File.ReadAllBytes(decorations[i]);
+				texture = new Texture2D(2, 2); // Will automatically resize on LoadImage
+				texture.LoadImage(fileData);
+				
+				string fileName = Path.GetFileName(decorations[i]);
+				// Using EncodeToPNG rather than GetRawTextureData so things will definitely be in the same format
+				text.Add(fileName.Substring(0, fileName.Length-4) + "," + Md5Sum(System.Text.Encoding.Default.GetString(texture.EncodeToPNG())));
+			}
+			
+			// Save the lists to files
+			File.WriteAllLines(Application.streamingAssetsPath + "\\Autogenerated\\Decorations.txt", text.ToArray());
+			Debug.Log("Calculated decoration MD5s");
+		}
+		else
+		{
+			Debug.Log("Could not find " + decorationsPath);
+		}
+	}
+	
+	void LoadLUColors()
+	{
+		string xmlPath = directoryInfo.FullName + "\\BrickColors.xml";
+		if (File.Exists(xmlPath))
+		{
+			List<string> text = new List<string>();
+			
+			XmlDocument xmlDocument = new XmlDocument();
+			xmlDocument.LoadXml(File.ReadAllText(xmlPath));
+			
+			XmlNodeList materialNodes = xmlDocument.DocumentElement.SelectNodes("//a:row");
+			foreach (XmlNode materialNode in materialNodes)
+			{
+				string legoID = materialNode.Attributes["legopaletteid"].Value;
+				string red = Math.Round(float.Parse(materialNode.Attributes["red"].Value)*255).ToString();
+				string green = Math.Round(float.Parse(materialNode.Attributes["green"].Value)*255).ToString();
+				string blue = Math.Round(float.Parse(materialNode.Attributes["blue"].Value)*255).ToString();
+				string alpha = Math.Round(float.Parse(materialNode.Attributes["alpha"].Value)*255).ToString();
+				string name = "LU" + materialNode.Attributes["id"].Value + "_" + materialNode.Attributes["description"].Value;
+				text.Add(legoID + "," + red + "," + green + "," + blue + "," + alpha + "," + name);
+			}
+			File.WriteAllLines(Application.streamingAssetsPath + "\\Custom Palettes\\LEGO Universe Unmodified.txt", text.ToArray());
+			Debug.Log("Loaded LU colors");
+		}
+		else
+		{
+			Debug.Log("Could not find " + xmlPath);
+		}
+	}
+	
+	// From http://wiki.unity3d.com/index.php?title=MD5
+	string Md5Sum(string strToEncrypt)
+	{
+		System.Text.UTF8Encoding ue = new System.Text.UTF8Encoding();
+		byte[] bytes = ue.GetBytes(strToEncrypt);
+	 
+		// encrypt bytes
+		System.Security.Cryptography.MD5CryptoServiceProvider md5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
+		byte[] hashBytes = md5.ComputeHash(bytes);
+	 
+		// Convert the encrypted bytes back to a string (base 16)
+		string hashString = "";
+	 
+		for (int i = 0; i < hashBytes.Length; i++)
+		{
+			hashString += System.Convert.ToString(hashBytes[i], 16).PadLeft(2, '0');
+		}
+	 
+		return hashString.PadLeft(32, '0');
 	}
 }

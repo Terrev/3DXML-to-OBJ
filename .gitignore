@@ -4,6 +4,7 @@
 /[Bb]uild/
 /[Bb]uilds/
 /[Mm]odels/
+/[Dd]ecorations/
 /Assets/AssetStoreTools*
 
 # Visual Studio 2015 cache directory
@@ -33,3 +34,6 @@ sysinfo.txt
 # Builds
 *.apk
 *.unitypackage
+
+/Materials.xml
+/BrickColors.xml

@@ -81,7 +81,7 @@ public class ObjExporter
 			for (int i = 0; i < Manager.meshes.Count; i++)
 			{
 				meshString.Append("\ng ").Append("Mesh" + i).Append("\n");
-				meshString.Append("usemtl Material").Append(Manager.meshes[i].material).Append("\n\n");
+				meshString.Append("usemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
 				meshString.Append(MeshHandler.MeshToString(Manager.meshes[i]));
 			}
 			File.WriteAllText(Manager.path + "\\" + Manager.fileName + ".obj", meshString.ToString());
@@ -89,11 +89,11 @@ public class ObjExporter
 			
 			// mtl
 			StringBuilder mtlString = new StringBuilder();
-			for (int i = 0; i < Manager.colors.Count; i++)
+			for (int i = 0; i < Manager.sortedColors.Count; i++)
 			{
-				mtlString.Append("newmtl Material").Append(i).Append("\n");
-				mtlString.Append("Kd ").Append(Manager.colors[i].r).Append(" ").Append(Manager.colors[i].g).Append(" ").Append(Manager.colors[i].b).Append(" ").Append("\n");
-				mtlString.Append("d ").Append(Manager.colors[i].a).Append("\n");
+				mtlString.Append("newmtl ").Append(Manager.sortedColors[i].legoName).Append("\n");
+				mtlString.Append("Kd ").Append(Manager.sortedColors[i].rgba.r).Append(" ").Append(Manager.sortedColors[i].rgba.g).Append(" ").Append(Manager.sortedColors[i].rgba.b).Append("\n");
+				mtlString.Append("d ").Append(Manager.sortedColors[i].rgba.a).Append("\n");
 			}
 			File.WriteAllText(Manager.path + "\\" + Manager.fileName + ".mtl", mtlString.ToString());
 			Debug.Log("Saved file " + Manager.fileName + ".mtl");
@@ -109,7 +109,8 @@ public class ObjExporter
 			for (int i = 0; i < Manager.meshesUV.Count; i++)
 			{
 				meshStringUV.Append("\ng ").Append("MeshUV" + i).Append("\n");
-				meshStringUV.Append("usemtl MaterialUV").Append(Manager.meshesUV[i].material).Append("\n\n");
+				// asdasjdhkjfsfgkjlh
+				meshStringUV.Append("usemtl ").Append(Manager.textures[Manager.meshesUV[i].material].textureName).Append("\n\n");
 				meshStringUV.Append(MeshHandler.MeshToString(Manager.meshesUV[i]));
 				if (!Manager.usedTextures.Contains(Manager.textures[Manager.meshesUV[i].material]))
 				{
@@ -123,13 +124,13 @@ public class ObjExporter
 			StringBuilder mtlStringUV = new StringBuilder();
 			for (int i = 0; i < Manager.usedTextures.Count; i++)
 			{
-				mtlStringUV.Append("newmtl MaterialUV").Append(i).Append("\n");
+				byte[] bytes = Manager.usedTextures[i].texture.EncodeToPNG();
+				mtlStringUV.Append("newmtl ").Append(Manager.usedTextures[i].textureName).Append("\n");
 				mtlStringUV.Append("Kd 1 1 1").Append("\n");
-				mtlStringUV.Append("map_Kd Texture").Append(i).Append(".png\n");
-				mtlStringUV.Append("map_d Texture").Append(i).Append(".png\n");
-				byte[] bytes = Manager.usedTextures[i].EncodeToPNG();
-				File.WriteAllBytes(Manager.path + "\\Texture" + i + ".png", bytes);
-				Debug.Log("Saved file Texture" + i + ".png");
+				mtlStringUV.Append("map_Kd ").Append(Manager.usedTextures[i].textureName).Append(".png\n");
+				mtlStringUV.Append("map_d ").Append(Manager.usedTextures[i].textureName).Append(".png\n");
+				File.WriteAllBytes(Manager.path + "\\" + Manager.usedTextures[i].textureName + ".png", bytes);
+				Debug.Log("Saved file " + Manager.usedTextures[i].textureName + ".png");
 			}
 			File.WriteAllText(Manager.path + "\\" + Manager.fileName + "UV.mtl", mtlStringUV.ToString());
 			Debug.Log("Saved file " + Manager.fileName + "UV.mtl");
