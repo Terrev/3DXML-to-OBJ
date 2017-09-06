@@ -8,6 +8,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using B83.MeshHelper;
 
+// This grew bigger than I anticipated, and I just added stuff as I needed it, so it got a bit cluttered
+// That said, I'm not sure it'd be worth the effort to restructure it
+
 public class Manager : MonoBehaviour
 {
 	XmlNamespaceManager xmlNamespaceManager;
@@ -23,6 +26,7 @@ public class Manager : MonoBehaviour
 	public static string fileName = null;
 	public static string path = null;
 	public static bool atStart = true;
+	public static bool wireframe = false;
 	static bool exportWithWelding = true;
 	string[] customPaletteFiles;
 	List<string> paletteChoices = new List<string>();
@@ -52,6 +56,7 @@ public class Manager : MonoBehaviour
 		usedTextures.Clear();
 		hasLoadedTextures = false;
 		atStart = true;
+		wireframe = false;
 		meshSizeFlag = false;
 		directoryInfo = Directory.GetParent(Application.dataPath);
 		
@@ -164,6 +169,10 @@ public class Manager : MonoBehaviour
 				{
 					sceneLight.shadows = LightShadows.Soft;
 				}
+			}
+			if (GUI.Button(new Rect(10, 70, 110, 25), "Toggle wireframe"))
+			{
+				wireframe = !wireframe;
 			}
 			GUI.Box(new Rect(0, Screen.height - 40, Screen.width, 40), "Exported to:\n" + path);
 		}
