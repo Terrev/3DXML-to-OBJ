@@ -61,11 +61,11 @@ public class Manager : MonoBehaviour
 		directoryInfo = Directory.GetParent(Application.dataPath);
 		
 		customPaletteFiles = Directory.GetFiles(Application.streamingAssetsPath + "\\Custom Palettes", "*.txt");
-		paletteChoices.Add("None (use LDD colors)");
+		paletteChoices.Add(" None (use LDD colors)");
 		for (int i = 0; i < customPaletteFiles.Length; i++)
 		{
 			paletteChoices.Add(Path.GetFileName(customPaletteFiles[i]));
-			paletteChoices[paletteChoices.Count - 1] = paletteChoices[paletteChoices.Count - 1].Substring(0, paletteChoices[paletteChoices.Count - 1].Length - 4);
+			paletteChoices[paletteChoices.Count - 1] = " " + paletteChoices[paletteChoices.Count - 1].Substring(0, paletteChoices[paletteChoices.Count - 1].Length - 4);
 		}
 		
 		if (PlayerPrefs.HasKey("Export With Welding"))
@@ -129,8 +129,8 @@ public class Manager : MonoBehaviour
 			}
 			exportWithWelding = GUI.Toggle(new Rect (15, 190, 240, 25), exportWithWelding, " Weld duplicate vertices");
 			
-			GUI.Label (new Rect (15, 210, 240, 25), "Use custom color palette:");
-			selectedPalette = GUI.SelectionGrid (new Rect (15, 235, 240, 25 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1);
+			GUI.Label (new Rect (15, 210, 240, 25), "Custom color palette:");
+			selectedPalette = GUI.SelectionGrid (new Rect (15, 230, 240, 20 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
 			
 			if (developerMenu)
 			{
