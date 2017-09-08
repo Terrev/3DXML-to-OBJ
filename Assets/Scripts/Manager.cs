@@ -24,13 +24,16 @@ public class Manager : MonoBehaviour
 	public static bool hasLoadedTextures;
 	public static string inputFileName = "FileName";
 	public static string fileName = null;
+	public static string exportFileName = null;
 	public static string path = null;
+	public static string exportPath = null;
 	public static bool atStart = true;
 	public static bool wireframe = false;
-	static bool exportWithWelding = true;
+	bool export = true;
+	bool exportWithWelding = true;
 	string[] customPaletteFiles;
 	List<string> paletteChoices = new List<string>();
-	static int selectedPalette = 0;
+	int selectedPalette = 0;
 	bool meshSizeFlag = false;
 	bool exitConfirmation = false;
 	static bool developerMenu = false;
@@ -125,7 +128,8 @@ public class Manager : MonoBehaviour
 			inputFileName = GUI.TextField(new Rect(15, 130, 240, 25), inputFileName, 100);
 			if (GUI.Button(new Rect(15, 160, 240, 25), "Convert"))
 			{
-				DoStuff(true, exportWithWelding);
+				export = true;
+				DoStuff(export, exportWithWelding);
 			}
 			exportWithWelding = GUI.Toggle(new Rect (15, 190, 240, 25), exportWithWelding, " Weld duplicate vertices");
 			
@@ -134,21 +138,28 @@ public class Manager : MonoBehaviour
 			
 			if (developerMenu)
 			{
-				if (GUI.Button(new Rect(270, 10, 250, 25), "View without converting"))
+				GUI.Box(new Rect(270, 10, 250, 175), "Developer Menu");
+				if (GUI.Button(new Rect(275, 35, 240, 25), "View 3DXML without converting"))
 				{
-					DoStuff(false, exportWithWelding);
+					export = false;
+					DoStuff(export, exportWithWelding);
 				}
-				if (GUI.Button(new Rect(270, 40, 250, 25), "Get official colors from Materials.xml"))
+				if (GUI.Button(new Rect(275, 65, 240, 25), "Get LDD colors from Materials.xml"))
 				{
 					LoadOfficialColors();
 				}
-				if (GUI.Button(new Rect(270, 70, 250, 25), "Calculate all decoration MD5s"))
+				if (GUI.Button(new Rect(275, 95, 240, 25), "Calculate all LDD decoration MD5s"))
 				{
 					CalculateAllDecorationMD5s();
 				}
-				if (GUI.Button(new Rect(270, 100, 250, 25), "Get LU colors"))
+				if (GUI.Button(new Rect(275, 125, 240, 25), "Get LU colors from BrickColors"))
 				{
 					LoadLUColors();
+				}
+				if (GUI.Button(new Rect(275, 155, 240, 25), "Reset PlayerPrefs"))
+				{
+					Debug.Log("Clearing PlayerPrefs");
+					PlayerPrefs.DeleteAll();
 				}
 			}
 		}
@@ -174,11 +185,21 @@ public class Manager : MonoBehaviour
 			{
 				wireframe = !wireframe;
 			}
-			GUI.Box(new Rect(0, Screen.height - 40, Screen.width, 40), "Exported to:\n" + path);
+			if (export)
+			{
+				GUI.Box(new Rect(0, Screen.height - 40, Screen.width, 40), "Exported to:\n" + exportPath);
+			}
 		}
 		if (meshSizeFlag)
 		{
-			GUI.Box(new Rect(0, Screen.height - 80, Screen.width, 40), "One or more meshes are too large to view in this program.\nYour exported model is unaffected by this.");
+			if (export)
+			{
+				GUI.Box(new Rect(0, Screen.height - 80, Screen.width, 40), "One or more meshes are too large to view in this program.\nYour exported model is unaffected by this.");
+			}
+			else
+			{
+				GUI.Box(new Rect(0, Screen.height - 25, Screen.width, 25), "One or more meshes are too large to view in this program.");
+			}
 		}
 		if (exitConfirmation)
 		{
@@ -194,7 +215,7 @@ public class Manager : MonoBehaviour
 		}
 	}
 	
-	void DoStuff(bool export, bool weld)
+	void DoStuff(bool exportModel, bool weldModel)
 	{
 		PlayerPrefs.SetInt("Export With Welding", exportWithWelding?1:0);
 		PlayerPrefs.SetString("Selected Palette", paletteChoices[selectedPalette]);
@@ -202,7 +223,7 @@ public class Manager : MonoBehaviour
 		Load();
 		if (meshes.Count + meshesUV.Count != 0)
 		{
-			if (weld)
+			if (weldModel)
 			{
 				MeshWelder meshWelder = new MeshWelder();
 				foreach (CustomMesh customMesh in meshes)
@@ -217,13 +238,14 @@ public class Manager : MonoBehaviour
 				}
 			}
 			
-			if (export)
+			if (exportModel)
 			{
 				ObjExporter objExporter = new ObjExporter();
 				objExporter.DoExport();
 			}
 			
-			// Load the meshes into Unity's mesh class, if they fit into its vertex limit
+			// Make GameObjects in the scene to show the model to the user
+			// Meshes that are too large for Unity's mesh class are skipped
 			for (int i = 0; i < meshes.Count; i++)
 			{
 				//Debug.Log("Mesh" + i + ": " + meshes[i].vertices.Length + " verts, " + (meshes[i].triangles.Length / 3) + " tris");
@@ -254,7 +276,7 @@ public class Manager : MonoBehaviour
 				}
 				else
 				{
-					Debug.Log("Cannot display Mesh" + i + " as it is too large");
+					Debug.Log("Mesh" + i + " is too large to view directly in this program");
 					meshSizeFlag = true;
 				}
 			}
@@ -281,7 +303,7 @@ public class Manager : MonoBehaviour
 				}
 				else
 				{
-					Debug.Log("Cannot display MeshUV" + i + " as it is too large");
+					Debug.Log("MeshUV" + i + " is too large to view directly in this program");
 					meshSizeFlag = true;
 				}
 			}
@@ -304,18 +326,21 @@ public class Manager : MonoBehaviour
 		{
 			fileName = inputFileName;
 		}
+		exportFileName = RemoveSpecialCharacters(fileName);
 		
 		path = directoryInfo.FullName + "\\Models\\" + fileName;
+		exportPath = directoryInfo.FullName + "\\Models\\" + exportFileName;
+		string unzipPath = Application.temporaryCachePath + "\\a";
 		
 		if (File.Exists(path + ".3dxml"))
 		{
-			ZipUtil.Unzip(path + ".3dxml", path);
+			ZipUtil.Unzip(path + ".3dxml", unzipPath);
 			
-			string[] files = Directory.GetFiles(path, "*.3dxml");
+			string[] files = Directory.GetFiles(unzipPath, "*.3dxml");
 			string xmlFileName = Path.GetFileName(files[0]);
 			
 			XmlDocument xmlDocument = new XmlDocument();
-			xmlDocument.LoadXml(File.ReadAllText(path + "\\" + xmlFileName));
+			xmlDocument.LoadXml(File.ReadAllText(unzipPath + "\\" + xmlFileName));
 			
 			xmlNamespaceManager = new XmlNamespaceManager(xmlDocument.NameTable);
 			xmlNamespaceManager.AddNamespace("a", "http://www.3ds.com/xsd/3DXML");
@@ -375,8 +400,7 @@ public class Manager : MonoBehaviour
 			ColorLookup();
 			TextureLookup();
 			
-			File.Delete(path + "\\" + xmlFileName);
-			File.Delete(path + "\\Manifest.xml");
+			Directory.Delete(unzipPath, true);
 		}
 		else
 		{
@@ -665,22 +689,22 @@ public class Manager : MonoBehaviour
 	
 	void EditLxf()
 	{
-		string unzippedLocation = Application.temporaryCachePath + "\\" + "unzip";
-		ZipUtil.Unzip(pathLxf + ".lxf", unzippedLocation);
+		string unzipPathLxf = Application.temporaryCachePath + "\\b";
+		ZipUtil.Unzip(pathLxf + ".lxf", unzipPathLxf);
 		
 		// As far as I know, the LXFMLs within the LXFs produced by LDD are always named IMAGE100.LXFML... But just in case the name is ever different, we search for it
-		string[] files = Directory.GetFiles(unzippedLocation, "*.lxfml");
+		string[] files = Directory.GetFiles(unzipPathLxf, "*.lxfml");
 		string lxfmlFileName = Path.GetFileName(files[0]);
 		
 		XmlDocument xmlDocument = new XmlDocument();
-		xmlDocument.LoadXml(File.ReadAllText(unzippedLocation + "\\" + lxfmlFileName));
+		xmlDocument.LoadXml(File.ReadAllText(unzipPathLxf + "\\" + lxfmlFileName));
 		
 		XmlElement camera = (XmlElement)xmlDocument.DocumentElement.SelectSingleNode(".//Camera");
 		camera.SetAttribute("distance", "0");
 		camera.SetAttribute("transformation", "1,0,0,0,1,0,0,0,1,0,0,0");
 		
 		xmlDocument.Save(pathLxf + " edited.lxfml");
-		Directory.Delete(unzippedLocation, true);
+		Directory.Delete(unzipPathLxf, true);
 		inputFileNameLxf = "Saved as: " + fileNameLxf + " edited.lxfml";
 	}
 	
@@ -738,9 +762,9 @@ public class Manager : MonoBehaviour
 				texture = new Texture2D(2, 2); // Will automatically resize on LoadImage
 				texture.LoadImage(fileData);
 				
-				string fileName = Path.GetFileName(decorations[i]);
+				string decorationName = Path.GetFileName(decorations[i]);
 				// Using EncodeToPNG rather than GetRawTextureData so things will definitely be in the same format
-				text.Add(fileName.Substring(0, fileName.Length-4) + "," + Md5Sum(System.Text.Encoding.Default.GetString(texture.EncodeToPNG())));
+				text.Add(decorationName.Substring(0, decorationName.Length-4) + "," + Md5Sum(System.Text.Encoding.Default.GetString(texture.EncodeToPNG())));
 			}
 			
 			// Save the lists to files
@@ -802,5 +826,22 @@ public class Manager : MonoBehaviour
 		}
 	 
 		return hashString.PadLeft(32, '0');
+	}
+	
+	string RemoveSpecialCharacters(string str)
+	{
+		StringBuilder sb = new StringBuilder();
+		foreach (char c in str)
+		{
+			if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_')
+			{
+				sb.Append(c);
+			}
+			else if (c == ' ' || c == '-')
+			{
+				sb.Append("_");
+			}
+		}
+		return sb.ToString();
 	}
 }
