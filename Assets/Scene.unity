@@ -201,6 +201,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sceneLight: {fileID: 790075344}
+  cameraScript: {fileID: 2121161371}
   baseMaterial: {fileID: 2100000, guid: 92e699ce7b74b2e498e5da16d058d1b9, type: 2}
   baseMaterialTransparent: {fileID: 2100000, guid: b2c6b536dc99b68439df9d2c7fe43277,
     type: 2}
@@ -244,7 +245,7 @@ MonoBehaviour:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 2121161370}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5ebd377b5442b5741ab9fac542977681, type: 3}
   m_Name: 
@@ -314,7 +315,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 2121161370}
   m_LocalRotation: {x: 0.09904577, y: 0.89239913, z: -0.23911765, w: 0.3696438}
-  m_LocalPosition: {x: 40, y: 40, z: 40}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 790075345}
