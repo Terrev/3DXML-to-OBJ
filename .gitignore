@@ -35,6 +35,4 @@ sysinfo.txt
 *.apk
 *.unitypackage
 
-/Materials.xml
-/Materials edited.xml
-/BrickColors.xml
+/*.xml
