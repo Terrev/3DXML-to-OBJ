@@ -44,7 +44,7 @@ public class Manager : MonoBehaviour
 	bool hasLoadedTextures = false;
 	
 	// 3DXML file name inputted by user
-	string inputFileName = "File.3dxml";
+	string inputFileName = "FileName";
 	// inputFileName with special characters removed, also the name of the folder the exported model is placed in
 	public static string exportFileName = null;
 	// Full path to the folder containing the exported model
@@ -58,7 +58,7 @@ public class Manager : MonoBehaviour
 	int selectedPalette = 0;
 	
 	// LXF/LXFML editing stuff
-	string lxfInputFileName = "File.lxf";
+	string lxfInputFileName = "FileName";
 	bool editCamera = true;
 	bool editColors = false;
 	bool resetColors = false;
@@ -74,7 +74,7 @@ public class Manager : MonoBehaviour
 	int selectedPalette2 = 0;
 	
 	// Updating internal definitions
-	string materialsInputFileName = "File.xml";
+	string materialsInputFileName = "Materials.xml";
 	string latestXml = null;
 	
 	// Misc UI/state stuff
