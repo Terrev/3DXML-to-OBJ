@@ -64,6 +64,7 @@ public class Manager : MonoBehaviour
 	bool resetColors = false;
 	int colorVariationSelection = 0;
 	string[] colorVariationOptions = new string[] {" No edit", " Add color variation", " Remove color variation"};
+	public static float variationStrength = 6.0f;
 	
 	// Materials.xml editing
 	bool applyCustomPalette = true;
@@ -159,6 +160,15 @@ public class Manager : MonoBehaviour
 		{
 			Debug.Log("No color editing setting saved");
 		}
+		
+		if (PlayerPrefs.HasKey("Variation Strength"))
+		{
+			variationStrength = PlayerPrefs.GetInt("Variation Strength");
+		}
+		else
+		{
+			Debug.Log("No variation strength setting saved");
+		}
 	}
 	
 	void Update()
@@ -179,18 +189,19 @@ public class Manager : MonoBehaviour
 		if (atStart)
 		{
 			// LXF/LXFML editing
-			GUI.Box(new Rect(10, 10, 250, 195), "Edit LXF/LXFML");
+			GUI.Box(new Rect(10, 10, 250, 225), "Edit LXF/LXFML");
 			lxfInputFileName = GUI.TextField(new Rect(15, 35, 240, 25), lxfInputFileName, 100);
 			if (GUI.Button(new Rect(15, 65, 240, 25), "Edit"))
 			{
 				PlayerPrefs.SetInt("Move Camera", editCamera?1:0);
 				PlayerPrefs.SetInt("Edit Colors", colorVariationSelection);
+				PlayerPrefs.SetInt("Variation Strength", (int)variationStrength);
 				LxfEditor lxfEditor = new LxfEditor();
 				lxfInputFileName = lxfEditor.Edit(lxfInputFileName, editCamera, editColors, resetColors);
 			}
 			editCamera = GUI.Toggle(new Rect(15, 95, 240, 25), editCamera, " Move camera to origin");
 			GUI.Label (new Rect(15, 115, 240, 25), "Edit colors:");
-			colorVariationSelection = GUI.SelectionGrid (new Rect(15, 135, 240, 60), colorVariationSelection, colorVariationOptions, 1, "toggle");
+			colorVariationSelection = GUI.SelectionGrid (new Rect(15, 135, 240, 58), colorVariationSelection, colorVariationOptions, 1, "toggle");
 			// hhuughufgh
 			if (colorVariationSelection == 0)
 			{
@@ -212,20 +223,31 @@ public class Manager : MonoBehaviour
 				Debug.Log("Wat");
 				colorVariationSelection = 0;
 			}
+			variationStrength = GUI.HorizontalSlider (new Rect(15, 217, 240, 60), variationStrength, 1.0f, 6.0f);
+			variationStrength = Mathf.Round(variationStrength);
+			string variationInfo = "Variation strength: " + variationStrength;
+			if (variationStrength == 6.0f)
+			{
+				variationInfo = "Variation strength: " + variationStrength + " (LU style)";
+			}
+			GUI.Label (new Rect(15, 195, 240, 60), variationInfo);
 			
 			// 3DXML conversion
-			GUI.Box(new Rect(10, 215, 250, Screen.height - 225), "Convert 3DXML to OBJ");
-			inputFileName = GUI.TextField(new Rect(15, 240, 240, 25), inputFileName, 100);
-			if (GUI.Button(new Rect(15, 270, 240, 25), "Convert"))
+			GUI.Box(new Rect(10, 245, 250, Screen.height - 255), "Convert 3DXML to OBJ");
+			inputFileName = GUI.TextField(new Rect(15, 270, 240, 25), inputFileName, 100);
+			if (GUI.Button(new Rect(15, 300, 240, 25), "Convert"))
 			{
 				export = true;
 				DoStuff(export, weld);
 			}
+			// Meh, we don't need this
+			/*
 			if (GUI.Button(new Rect(15, 300, 240, 25), "View without converting"))
 			{
 				export = false;
 				DoStuff(export, weld);
 			}
+			*/
 			weld = GUI.Toggle(new Rect(15, 330, 240, 25), weld, " Weld duplicate vertices");
 			GUI.Label (new Rect(15, 350, 240, 25), "Color replacement:");
 			selectedPalette = GUI.SelectionGrid (new Rect(15, 370, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");

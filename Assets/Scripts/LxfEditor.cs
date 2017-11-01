@@ -144,7 +144,8 @@ public class LxfEditor
 				{
 					if (colorsWithVariations.Contains(substrings[j]) && !variationExclusion.Contains(substrings[j]))
 					{
-						int variation = rng.Next(0, 13);
+						//int variation = rng.Next(0, 13);
+						int variation = rng.Next(6 - (int)Manager.variationStrength, 7 + (int)Manager.variationStrength);
 						if (variation <= 9)
 						{
 							newStringBuilder.Append("9000").Append(variation).Append(substrings[j]).Append(",");
@@ -196,7 +197,20 @@ public class LxfEditor
 			}
 		}
 		
-		xmlDocument.Save(filePath + " edited.lxfml");
-		return("Saved as: " + fileName + " edited.lxfml");
+		StringBuilder blah = new StringBuilder();
+		if (editCamera)
+		{
+			blah.Append(" CAM_SET");
+		}
+		if (editColors)
+		{
+			blah.Append(" COLORS_" + Manager.variationStrength);
+		}
+		if (resetColors)
+		{
+			blah.Append(" COLORS_RESET");
+		}
+		xmlDocument.Save(filePath + blah + ".lxfml");
+		return("Saved as: " + fileName + blah + ".lxfml");
 	}
 }
