@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -76,15 +77,21 @@ public class ObjExporter
 		// Main model
 		if (Manager.meshes.Count != 0)
 		{
+			string[] exportExclusionArray = File.ReadAllLines(Application.streamingAssetsPath + "\\Color Export Exclusion.txt");
+			List<string> exportExclusion = new List<string>(exportExclusionArray);
+			
 			// obj
 			MeshHandler.Start();
 			StringBuilder meshString = new StringBuilder();
 			meshString.Append("mtllib ").Append(Manager.exportFileName).Append(".mtl\n");
 			for (int i = 0; i < Manager.meshes.Count; i++)
 			{
-				meshString.Append("\ng ").Append("Mesh" + i).Append("\n");
-				meshString.Append("usemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
-				meshString.Append(MeshHandler.MeshToString(Manager.meshes[i]));
+				if (!exportExclusion.Contains(Manager.colors[Manager.meshes[i].material].id.ToString()))
+				{
+					meshString.Append("\ng ").Append("Mesh" + i).Append("\n");
+					meshString.Append("usemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
+					meshString.Append(MeshHandler.MeshToString(Manager.meshes[i]));
+				}
 			}
 			File.WriteAllText(Manager.exportPath + "\\" + Manager.exportFileName + ".obj", meshString.ToString());
 			Debug.Log("Saved file " + Manager.exportFileName + ".obj");
@@ -93,9 +100,12 @@ public class ObjExporter
 			StringBuilder mtlString = new StringBuilder();
 			for (int i = 0; i < Manager.sortedColors.Count; i++)
 			{
-				mtlString.Append("newmtl ").Append(Manager.sortedColors[i].legoName).Append("\n");
-				mtlString.Append("Kd ").Append(Manager.sortedColors[i].rgba.r).Append(" ").Append(Manager.sortedColors[i].rgba.g).Append(" ").Append(Manager.sortedColors[i].rgba.b).Append("\n");
-				mtlString.Append("d ").Append(Manager.sortedColors[i].rgba.a).Append("\n");
+				if (!exportExclusion.Contains(Manager.sortedColors[i].id.ToString()))
+				{
+					mtlString.Append("newmtl ").Append(Manager.sortedColors[i].legoName).Append("\n");
+					mtlString.Append("Kd ").Append(Manager.sortedColors[i].rgba.r).Append(" ").Append(Manager.sortedColors[i].rgba.g).Append(" ").Append(Manager.sortedColors[i].rgba.b).Append("\n");
+					mtlString.Append("d ").Append(Manager.sortedColors[i].rgba.a).Append("\n");
+				}
 			}
 			File.WriteAllText(Manager.exportPath + "\\" + Manager.exportFileName + ".mtl", mtlString.ToString());
 			Debug.Log("Saved file " + Manager.exportFileName + ".mtl");

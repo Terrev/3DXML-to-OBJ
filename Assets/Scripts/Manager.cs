@@ -762,34 +762,40 @@ public class Manager : MonoBehaviour
 	void ViewModel()
 	{
 		// Make GameObjects in the scene to show the model to the user
-		// Meshes that are too large for Unity's mesh class are skipped
+		// Meshes that are too large for Unity's mesh class are skipped, as are meshes we've excluded from exporting
+		string[] exportExclusionArray = File.ReadAllLines(Application.streamingAssetsPath + "\\Color Export Exclusion.txt");
+		List<string> exportExclusion = new List<string>(exportExclusionArray);
+		
 		for (int i = 0; i < meshes.Count; i++)
 		{
 			//Debug.Log("Mesh" + i + ": " + meshes[i].vertices.Length + " verts, " + (meshes[i].triangles.Length / 3) + " tris");
 			if (meshes[i].vertices.Length < 65534 && (meshes[i].triangles.Length / 3) < 65534)
 			{
-				GameObject newGameObject = new GameObject("Mesh" + i);
-				newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
-				MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
-				MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
-				if (colors[meshes[i].material].rgba.a < 1.0f)
+				if (!exportExclusion.Contains(colors[meshes[i].material].id.ToString()))
 				{
-					meshRenderer.material = baseMaterialTransparent;
+					GameObject newGameObject = new GameObject("Mesh" + i);
+					newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
+					MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
+					MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
+					if (colors[meshes[i].material].rgba.a < 1.0f)
+					{
+						meshRenderer.material = baseMaterialTransparent;
+					}
+					else
+					{
+						meshRenderer.material = baseMaterial;
+					}
+					// Technically, this is an ineffecient way to do this; it leads to each mesh having its own unique material
+					// In practice, it hardly matters at all - no batching happens anyway because of the negative scale on x
+					// And even when the scale isn't set to negative on x, hardly any batching happens because LDD has already combined so much
+					meshRenderer.material.color = colors[meshes[i].material].rgba;
+					
+					Mesh mesh = new Mesh();
+					meshFilter.mesh = mesh;
+					mesh.vertices = meshes[i].vertices;
+					mesh.normals = meshes[i].normals;
+					mesh.triangles = meshes[i].triangles;
 				}
-				else
-				{
-					meshRenderer.material = baseMaterial;
-				}
-				// Technically, this is an ineffecient way to do this; it leads to each mesh having its own unique material
-				// In practice, it hardly matters at all - no batching happens anyway because of the negative scale on x
-				// And even when the scale isn't set to negative on x, hardly any batching happens because LDD has already combined so much
-				meshRenderer.material.color = colors[meshes[i].material].rgba;
-				
-				Mesh mesh = new Mesh();
-				meshFilter.mesh = mesh;
-				mesh.vertices = meshes[i].vertices;
-				mesh.normals = meshes[i].normals;
-				mesh.triangles = meshes[i].triangles;
 			}
 			else
 			{
