@@ -235,7 +235,7 @@ public class Manager : MonoBehaviour
 					Debug.Log("Wat");
 					colorVariationSelection = 0;
 				}
-				variationStrength = GUI.HorizontalSlider (new Rect(15, 217, 240, 60), variationStrength, 1.0f, 6.0f);
+				variationStrength = GUI.HorizontalSlider (new Rect(15, 217, 240, 25), variationStrength, 1.0f, 6.0f);
 				variationStrength = Mathf.Round(variationStrength);
 				string variationInfo = "Variation strength: " + variationStrength;
 				if (variationStrength == 6.0f)
