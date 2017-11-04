@@ -396,6 +396,9 @@ public class Manager : MonoBehaviour
 		{
 			if (weldModel)
 			{
+				Debug.Log("Welding meshes...");
+				DateTime start = DateTime.Now;
+
 				MeshWelder meshWelder = new MeshWelder();
 				foreach (CustomMesh customMesh in meshes)
 				{
@@ -407,6 +410,8 @@ public class Manager : MonoBehaviour
 					meshWelder.customMesh = customMesh;
 					meshWelder.Weld(true);
 				}
+
+				Debug.Log(string.Format("Welding completed in {0} seconds", (DateTime.Now - start).TotalSeconds));
 			}
 			
 			if (exportModel)
