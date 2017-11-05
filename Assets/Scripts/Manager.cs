@@ -306,7 +306,7 @@ public class Manager : MonoBehaviour
 				// don't really care tbh
 				
 				// LXF/LXFML editing
-				GUI.Box(new Rect(10, 10, 250, 90), "Move camera to origin in LXF/LXFML");
+				GUI.Box(new Rect(10, 10, 250, 85), "Move camera to origin in LXF/LXFML");
 				lxfInputFileName = GUI.TextField(new Rect(15, 35, 240, 25), lxfInputFileName, 100);
 				if (GUI.Button(new Rect(15, 65, 240, 25), "Move camera"))
 				{
@@ -315,16 +315,16 @@ public class Manager : MonoBehaviour
 				}
 				
 				// 3DXML conversion
-				GUI.Box(new Rect(10, 110, 250, Screen.height - 120), "Convert 3DXML to OBJ");
-				inputFileName = GUI.TextField(new Rect(15, 135, 240, 25), inputFileName, 100);
-				if (GUI.Button(new Rect(15, 165, 240, 25), "Convert"))
+				GUI.Box(new Rect(10, 105, 250, Screen.height - 115), "Convert 3DXML to OBJ");
+				inputFileName = GUI.TextField(new Rect(15, 130, 240, 25), inputFileName, 100);
+				if (GUI.Button(new Rect(15, 160, 240, 25), "Convert"))
 				{
 					export = true;
 					DoStuff(export, weld);
 				}
-				weld = GUI.Toggle(new Rect(15, 195, 240, 25), weld, " Weld duplicate vertices");
-				GUI.Label (new Rect(15, 215, 240, 25), "Color replacement:");
-				selectedPalette = GUI.SelectionGrid (new Rect(15, 235, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
+				weld = GUI.Toggle(new Rect(15, 190, 240, 25), weld, " Weld duplicate vertices");
+				GUI.Label (new Rect(15, 210, 240, 25), "Color replacement:");
+				selectedPalette = GUI.SelectionGrid (new Rect(15, 230, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
 				
 				if (GUI.Button(new Rect(Screen.width - 80, 10, 70, 25), "Advanced"))
 				{
