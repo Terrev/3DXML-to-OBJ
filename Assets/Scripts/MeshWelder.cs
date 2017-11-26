@@ -40,9 +40,18 @@ namespace B83.MeshHelper
             return false;
         }
 
-        public override int GetHashCode() // This can be improved
+        public override int GetHashCode()
         {
-            return pos.GetHashCode() ^ (normal.GetHashCode() << 2) ^ (uv1.GetHashCode() >> 2);
+            unchecked
+            {
+                int hashCode = pos.x.GetHashCode();
+                hashCode = (hashCode * 397) ^ pos.y.GetHashCode();
+                hashCode = (hashCode * 397) ^ pos.z.GetHashCode();
+                hashCode = (hashCode * 397) ^ normal.x.GetHashCode();
+                hashCode = (hashCode * 397) ^ normal.z.GetHashCode();
+                hashCode = (hashCode * 397) ^ normal.y.GetHashCode();
+                return hashCode;
+            }
         }
     }
 
