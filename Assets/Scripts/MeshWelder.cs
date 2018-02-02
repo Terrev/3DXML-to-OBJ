@@ -4,11 +4,11 @@ using System.Linq;
 using UnityEngine;
 
 /*
-    Originally created by Bunny83.
+	Originally created by Bunny83.
 	Was streamlined and modified a bit by Terrev to better fit the needs of this project,
 	then overhauled by grappigegovert for major speed improvements.
 	Bunny83's original version:
-    https://www.dropbox.com/s/u0wfq42441pkoat/MeshWelder.cs?dl=0
+	https://www.dropbox.com/s/u0wfq42441pkoat/MeshWelder.cs?dl=0
 	Which was posted here:
 	http://answers.unity3d.com/questions/1382854/welding-vertices-at-runtime.html
 */
