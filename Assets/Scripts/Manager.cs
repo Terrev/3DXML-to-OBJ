@@ -23,6 +23,10 @@ public class Manager : MonoBehaviour
 	// Directory of exe (up one level from Application.dataPath), set in Start()
 	public static DirectoryInfo directoryInfo;
 	
+	// Paths for unzipping 3DXMLs and LXFMLs
+	public static string unzipPathA = "";
+	public static string unzipPathB = "";
+	
 	// XML namespace thingy for the 3DXML file
 	XmlNamespaceManager xmlNamespaceManager;
 	
@@ -87,6 +91,7 @@ public class Manager : MonoBehaviour
 	bool exitConfirmation = false;
 	bool export = true;
 	bool weld = true;
+	bool forceGarbageCollection = true; // Ok, going by the profiler, doing this *does* seem to improve total allocated memory, so I'll keep it enabled
 	
 	// Things to assign in the inspector
 	public Light sceneLight;
@@ -97,6 +102,19 @@ public class Manager : MonoBehaviour
 	
 	void Start()
 	{
+		// Set up unzip paths and clear out any stuff that may not have been deleted for whatever reason
+		unzipPathA = Application.temporaryCachePath + "\\a";
+		unzipPathB = Application.temporaryCachePath + "\\b";
+		if (Directory.Exists(unzipPathA))
+		{
+			Directory.Delete(unzipPathA, true);
+		}
+		if (Directory.Exists(unzipPathB))
+		{
+			Directory.Delete(unzipPathB, true);
+		}
+		
+		// Other setup stuff
 		directoryInfo = Directory.GetParent(Application.dataPath);
 		meshes.Clear();
 		meshesUV.Clear();
@@ -404,12 +422,12 @@ public class Manager : MonoBehaviour
 				foreach (CustomMesh customMesh in meshes)
 				{
 					meshWelder.customMesh = customMesh;
-					meshWelder.Weld(false);
+					meshWelder.Weld();
 				}
 				foreach (CustomMesh customMesh in meshesUV)
 				{
 					meshWelder.customMesh = customMesh;
-					meshWelder.Weld(true);
+					meshWelder.Weld();
 				}
 
 				Debug.Log(string.Format("Welding completed in {0} seconds", (DateTime.Now - start).TotalSeconds));
@@ -417,6 +435,13 @@ public class Manager : MonoBehaviour
 			
 			if (exportModel)
 			{
+				if (forceGarbageCollection)
+				{
+					// Flush things one more time to hopefully help keep memory from spiking
+					System.GC.Collect();
+					System.GC.WaitForPendingFinalizers();
+				}
+				
 				ObjExporter objExporter = new ObjExporter();
 				objExporter.DoExport();
 			}
@@ -451,14 +476,20 @@ public class Manager : MonoBehaviour
 			exportFileName = RemoveSpecialCharacters(fileName);
 			exportPath = directoryInfo.FullName + "\\Models\\" + exportFileName;
 			
-			string unzipPath = Application.temporaryCachePath + "\\a";
-			ZipUtil.Unzip(inputFilePath, unzipPath);
+			ZipUtil.Unzip(inputFilePath, unzipPathA);
 			
-			string[] files = Directory.GetFiles(unzipPath, "*.3dxml");
+			string[] files = Directory.GetFiles(unzipPathA, "*.3dxml");
 			string xmlFileName = Path.GetFileName(files[0]);
 			
+			if (forceGarbageCollection)
+			{
+				// Unsure how much garbage unzipping produces but SURE, seems like it could be a lot, let's get it down to as low as possible before doing the hefty XML work
+				System.GC.Collect();
+				System.GC.WaitForPendingFinalizers();
+			}
+			
 			XmlDocument xmlDocument = new XmlDocument();
-			xmlDocument.LoadXml(File.ReadAllText(unzipPath + "\\" + xmlFileName));
+			xmlDocument.LoadXml(File.ReadAllText(unzipPathA + "\\" + xmlFileName));
 			
 			xmlNamespaceManager = new XmlNamespaceManager(xmlDocument.NameTable);
 			xmlNamespaceManager.AddNamespace("a", "http://www.3ds.com/xsd/3DXML");
@@ -522,10 +553,20 @@ public class Manager : MonoBehaviour
 				}
 			}
 			
+			if (forceGarbageCollection)
+			{
+				// NUKE ALL THE THINGS
+				xmlDocument = null;
+				xmlNamespaceManager = null;
+				representations = null;
+				System.GC.Collect();
+				System.GC.WaitForPendingFinalizers();
+			}
+			
 			ColorLookup();
 			TextureLookup();
 			
-			Directory.Delete(unzipPath, true);
+			Directory.Delete(unzipPathA, true);
 		}
 		else
 		{

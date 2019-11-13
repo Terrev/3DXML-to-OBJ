@@ -73,16 +73,15 @@ public class LxfEditor
 	
 	XmlDocument LoadLxf()
 	{
-		string unzipPath = Application.temporaryCachePath + "\\b";
-		ZipUtil.Unzip(filePath + ".lxf", unzipPath);
+		ZipUtil.Unzip(filePath + ".lxf", Manager.unzipPathB);
 		
 		// As far as I know, the LXFMLs within the LXFs produced by LDD are always named IMAGE100.LXFML... But just in case the name is ever different, we search for it
-		string[] files = Directory.GetFiles(unzipPath, "*.lxfml");
+		string[] files = Directory.GetFiles(Manager.unzipPathB, "*.lxfml");
 		string unzippedLxfml = Path.GetFileName(files[0]);
 		
 		XmlDocument xmlDocument = new XmlDocument();
-		xmlDocument.LoadXml(File.ReadAllText(unzipPath + "\\" + unzippedLxfml));
-		Directory.Delete(unzipPath, true);
+		xmlDocument.LoadXml(File.ReadAllText(Manager.unzipPathB + "\\" + unzippedLxfml));
+		Directory.Delete(Manager.unzipPathB, true);
 		return xmlDocument;
 	}
 	

@@ -141,7 +141,7 @@ namespace B83.MeshHelper
             customMesh.triangles = tris;
         }
 
-        public void Weld(bool hasUV)
+        public void Weld()
         {
             CreateVertexList();
             RemoveDuplicates();
