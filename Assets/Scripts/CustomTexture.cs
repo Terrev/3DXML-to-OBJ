@@ -5,7 +5,7 @@ using UnityEngine;
 public class CustomTexture
 {
 	public Texture2D texture;
-	public int id = 0;
+	public byte[] png;
 	public string md5 = null;
 	public string textureName = null;
 }

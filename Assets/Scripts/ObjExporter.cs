@@ -136,12 +136,11 @@ public class ObjExporter
 			StringBuilder mtlStringUV = new StringBuilder();
 			for (int i = 0; i < Manager.usedTextures.Count; i++)
 			{
-				byte[] bytes = Manager.usedTextures[i].texture.EncodeToPNG();
 				mtlStringUV.Append("newmtl ").Append(Manager.usedTextures[i].textureName).Append("\n");
 				mtlStringUV.Append("Kd 1 1 1").Append("\n");
 				mtlStringUV.Append("map_Kd ").Append(Manager.usedTextures[i].textureName).Append(".png\n");
 				mtlStringUV.Append("map_d ").Append(Manager.usedTextures[i].textureName).Append(".png\n");
-				File.WriteAllBytes(Manager.exportPath + "\\" + Manager.usedTextures[i].textureName + ".png", bytes);
+				File.WriteAllBytes(Manager.exportPath + "\\" + Manager.usedTextures[i].textureName + ".png", Manager.usedTextures[i].png);
 				Debug.Log("Saved file " + Manager.usedTextures[i].textureName + ".png");
 			}
 			File.WriteAllText(Manager.exportPath + "\\" + Manager.exportFileName + "_UV.mtl", mtlStringUV.ToString());

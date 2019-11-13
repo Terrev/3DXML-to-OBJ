@@ -7,6 +7,7 @@ using System.Xml;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using B83.MeshHelper;
+using Hjg.Pngcs;
 
 // This tool started simply as a 3DXML to OBJ converter
 // Then ideas for a bunch of other related, helpful features started coming in
@@ -505,7 +506,8 @@ public class Manager : MonoBehaviour
 							tex2.Apply();
 							CustomTexture newCustomTexture = new CustomTexture();
 							newCustomTexture.texture = tex2;
-							newCustomTexture.md5 = Md5Sum(System.Text.Encoding.Default.GetString(tex2.EncodeToPNG()));
+							newCustomTexture.png = tex2.EncodeToPNG();
+							newCustomTexture.md5 = Md5Sum(newCustomTexture.png);
 							textures.Add(newCustomTexture);
 						}
 						hasLoadedTextures = true;
@@ -751,7 +753,6 @@ public class Manager : MonoBehaviour
 				// If we get an MD5 match, set the texture's ID that MD5's ID
 				if (textures[i].md5 == substrings[1])
 				{
-					textures[i].id = int.Parse(substrings[0]);
 					textures[i].textureName = substrings[0];
 					break;
 				}
@@ -790,7 +791,7 @@ public class Manager : MonoBehaviour
 					{
 						meshRenderer.material = baseMaterial;
 					}
-					// Technically, this is an ineffecient way to do this; it leads to each mesh having its own unique material
+					// Technically, this is an inefficient way to do this; it leads to each mesh having its own unique material
 					// In practice, it hardly matters at all - no batching happens anyway because of the negative scale on x
 					// And even when the scale isn't set to negative on x, hardly any batching happens because LDD has already combined so much
 					meshRenderer.material.color = colors[meshes[i].material].rgba;
@@ -895,16 +896,108 @@ public class Manager : MonoBehaviour
 			string[] decorations = Directory.GetFiles(decorationsPath, "*.png");
 			for (int i = 0; i < decorations.Length; i++)
 			{
+				/*
 				// Load texture from png
-				Texture2D texture = null;
-				byte[] fileData;
-				fileData = File.ReadAllBytes(decorations[i]);
-				texture = new Texture2D(2, 2); // Will automatically resize on LoadImage
+				byte[] fileData = File.ReadAllBytes(decorations[i]);
+				Texture2D texture = new Texture2D(2, 2); // Will automatically resize on LoadImage
 				texture.LoadImage(fileData);
 				
 				string decorationName = Path.GetFileName(decorations[i]);
 				// Using EncodeToPNG rather than GetRawTextureData so things will definitely be in the same format
-				text.Add(decorationName.Substring(0, decorationName.Length-4) + "," + Md5Sum(System.Text.Encoding.Default.GetString(texture.EncodeToPNG())));
+				text.Add(decorationName.Substring(0, decorationName.Length-4) + "," + Md5Sum(tex2.EncodeToPNG()));
+				*/
+				
+				// At some point in the past 2 years, LoadImage started giving incorrect results on some PNGs, distorting their colors
+				// I think it may have to do with Unity choking on the gamma information in them somehow, but I'm not sure
+				// So what used to take just a few lines in the commented out block of code above...
+				// ... now takes a library (PngCs) and all the code below to achieve the same results
+				// sigh
+				
+				string decorationName = Path.GetFileName(decorations[i]);
+				
+				PngReader pngReader = FileHelper.CreatePngReader(decorations[i]);
+				pngReader.SetUnpackedMode(true);
+				
+				int width = pngReader.ImgInfo.Cols;
+				int height = pngReader.ImgInfo.Rows;
+				
+				// We'll put the texture data in a Texture2D and then call Unity's EncodeToPNG, this will match the output PNGs from the 3DXML conversion
+				Texture2D ourNewTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+				
+				// RGBA (by far most LDD textures)
+				if (pngReader.ImgInfo.Channels == 4)
+				{
+					byte[] rawTextureData = new byte[height * width * 4];
+					// 3 AM shenanigans to reverse the order of the lines cause otherwise the image comes out upside down
+					int currentLineStartPoint = rawTextureData.Length - (width * 4);
+					for (int row = 0; row < height; row++)
+					{
+						int howFarInTheLine = 0;
+						ImageLine imageLine = pngReader.ReadRowInt(row);
+						for (int pixelStart = 0; pixelStart < width * 4; pixelStart += 4)
+						{
+							int whereWePutThis = currentLineStartPoint + howFarInTheLine;
+							rawTextureData[whereWePutThis] = (byte)imageLine.Scanline[pixelStart];
+							rawTextureData[whereWePutThis + 1] = (byte)imageLine.Scanline[pixelStart + 1];
+							rawTextureData[whereWePutThis + 2] = (byte)imageLine.Scanline[pixelStart + 2];
+							rawTextureData[whereWePutThis + 3] = (byte)imageLine.Scanline[pixelStart + 3];
+							howFarInTheLine += 4;
+						}
+						currentLineStartPoint -= width * 4;
+					}
+					ourNewTexture.LoadRawTextureData(rawTextureData);
+					text.Add(decorationName.Substring(0, decorationName.Length-4) + "," + Md5Sum(ourNewTexture.EncodeToPNG()));
+				}
+				
+				// Grayscale + alpha (there's a fair few textures like this)
+				else if (pngReader.ImgInfo.Channels == 2)
+				{
+					byte[] rawTextureData = new byte[height * width * 4];
+					// 3 AM shenanigans to reverse the order of the lines cause otherwise the image comes out upside down
+					int currentLineStartPoint = rawTextureData.Length - (width * 4);
+					for (int row = 0; row < height; row++)
+					{
+						int howFarInTheLine = 0;
+						ImageLine imageLine = pngReader.ReadRowInt(row);
+						for (int pixelStart = 0; pixelStart < width * 2; pixelStart += 2)
+						{
+							int whereWePutThis = currentLineStartPoint + howFarInTheLine;
+							rawTextureData[whereWePutThis] = (byte)imageLine.Scanline[pixelStart];
+							rawTextureData[whereWePutThis + 1] = (byte)imageLine.Scanline[pixelStart];
+							rawTextureData[whereWePutThis + 2] = (byte)imageLine.Scanline[pixelStart];
+							rawTextureData[whereWePutThis + 3] = (byte)imageLine.Scanline[pixelStart + 1];
+							howFarInTheLine += 4;
+						}
+						currentLineStartPoint -= width * 4;
+					}
+					ourNewTexture.LoadRawTextureData(rawTextureData);
+					text.Add(decorationName.Substring(0, decorationName.Length-4) + "," + Md5Sum(ourNewTexture.EncodeToPNG()));
+				}
+				
+				// RGB (only one texture like this in LDD at the time of this writing)
+				else if (pngReader.ImgInfo.Channels == 3)
+				{
+					byte[] rawTextureData = new byte[height * width * 4];
+					// 3 AM shenanigans to reverse the order of the lines cause otherwise the image comes out upside down
+					int currentLineStartPoint = rawTextureData.Length - (width * 4);
+					for (int row = 0; row < height; row++)
+					{
+						int howFarInTheLine = 0;
+						ImageLine imageLine = pngReader.ReadRowInt(row);
+						for (int pixelStart = 0; pixelStart < width * 3; pixelStart += 3)
+						{
+							int whereWePutThis = currentLineStartPoint + howFarInTheLine;
+							rawTextureData[whereWePutThis] = (byte)imageLine.Scanline[pixelStart];
+							rawTextureData[whereWePutThis + 1] = (byte)imageLine.Scanline[pixelStart + 1];
+							rawTextureData[whereWePutThis + 2] = (byte)imageLine.Scanline[pixelStart + 2];
+							rawTextureData[whereWePutThis + 3] = (byte)255;
+							howFarInTheLine += 4;
+						}
+						currentLineStartPoint -= width * 4;
+					}
+					ourNewTexture.LoadRawTextureData(rawTextureData);
+					text.Add(decorationName.Substring(0, decorationName.Length-4) + "," + Md5Sum(ourNewTexture.EncodeToPNG()));
+				}
 			}
 			
 			// Save the lists to files
@@ -1091,23 +1184,20 @@ public class Manager : MonoBehaviour
 	
 	// From http://wiki.unity3d.com/index.php?title=MD5
 	// Used for comparing textures
-	string Md5Sum(string strToEncrypt)
+	string Md5Sum(byte[] bytes)
 	{
-		System.Text.UTF8Encoding ue = new System.Text.UTF8Encoding();
-		byte[] bytes = ue.GetBytes(strToEncrypt);
-	 
 		// encrypt bytes
 		System.Security.Cryptography.MD5CryptoServiceProvider md5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
 		byte[] hashBytes = md5.ComputeHash(bytes);
-	 
+		
 		// Convert the encrypted bytes back to a string (base 16)
 		string hashString = "";
-	 
+		
 		for (int i = 0; i < hashBytes.Length; i++)
 		{
 			hashString += System.Convert.ToString(hashBytes[i], 16).PadLeft(2, '0');
 		}
-	 
+		
 		return hashString.PadLeft(32, '0');
 	}
 	
