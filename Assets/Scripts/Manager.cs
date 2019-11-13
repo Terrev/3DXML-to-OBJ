@@ -87,7 +87,6 @@ public class Manager : MonoBehaviour
 	static bool advancedMode = false;
 	bool atStart = true;
 	public static bool wireframe = false;
-	bool meshSizeFlag = false;
 	bool exitConfirmation = false;
 	bool export = true;
 	bool weld = true;
@@ -377,17 +376,6 @@ public class Manager : MonoBehaviour
 			if (export)
 			{
 				GUI.Box(new Rect(0, Screen.height - 40, Screen.width, 40), "Exported to:\n" + exportPath);
-			}
-		}
-		if (meshSizeFlag)
-		{
-			if (export)
-			{
-				GUI.Box(new Rect(0, Screen.height - 80, Screen.width, 40), "One or more meshes are too large to view in this program.\nYour exported model is unaffected by this.");
-			}
-			else
-			{
-				GUI.Box(new Rect(0, Screen.height - 25, Screen.width, 25), "One or more meshes are too large to view in this program.");
 			}
 		}
 		if (exitConfirmation)
@@ -822,66 +810,58 @@ public class Manager : MonoBehaviour
 		for (int i = 0; i < meshes.Count; i++)
 		{
 			//Debug.Log("Mesh" + i + ": " + meshes[i].vertices.Length + " verts, " + (meshes[i].triangles.Length / 3) + " tris");
-			if (meshes[i].vertices.Length < 65534 && (meshes[i].triangles.Length / 3) < 65534)
+			if (!exportExclusion.Contains(colors[meshes[i].material].id.ToString()))
 			{
-				if (!exportExclusion.Contains(colors[meshes[i].material].id.ToString()))
+				GameObject newGameObject = new GameObject("Mesh" + i);
+				newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
+				MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
+				MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
+				if (colors[meshes[i].material].rgba.a < 1.0f)
 				{
-					GameObject newGameObject = new GameObject("Mesh" + i);
-					newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
-					MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
-					MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
-					if (colors[meshes[i].material].rgba.a < 1.0f)
-					{
-						meshRenderer.material = baseMaterialTransparent;
-					}
-					else
-					{
-						meshRenderer.material = baseMaterial;
-					}
-					// Technically, this is an inefficient way to do this; it leads to each mesh having its own unique material
-					// In practice, it hardly matters at all - no batching happens anyway because of the negative scale on x
-					// And even when the scale isn't set to negative on x, hardly any batching happens because LDD has already combined so much
-					meshRenderer.material.color = colors[meshes[i].material].rgba;
-					
-					Mesh mesh = new Mesh();
-					meshFilter.mesh = mesh;
-					mesh.vertices = meshes[i].vertices;
-					mesh.normals = meshes[i].normals;
-					mesh.triangles = meshes[i].triangles;
+					meshRenderer.material = baseMaterialTransparent;
 				}
-			}
-			else
-			{
-				Debug.Log("Mesh" + i + " is too large to view directly in this program");
-				meshSizeFlag = true;
+				else
+				{
+					meshRenderer.material = baseMaterial;
+				}
+				// Technically, this is an inefficient way to do this; it leads to each mesh having its own unique material
+				// In practice, it hardly matters at all - no batching happens anyway because of the negative scale on x
+				// And even when the scale isn't set to negative on x, hardly any batching happens because LDD has already combined so much
+				meshRenderer.material.color = colors[meshes[i].material].rgba;
+				
+				Mesh mesh = new Mesh();
+				if (meshes[i].vertices.Length > 65534 || (meshes[i].triangles.Length / 3) > 65534)
+				{
+					mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+				}
+				mesh.vertices = meshes[i].vertices;
+				mesh.normals = meshes[i].normals;
+				mesh.triangles = meshes[i].triangles;
+				meshFilter.mesh = mesh;
 			}
 		}
 		
 		for (int i = 0; i < meshesUV.Count; i++)
 		{
 			//Debug.Log("MeshUV" + i + ": " + meshesUV[i].vertices.Length + " verts, " + (meshesUV[i].triangles.Length / 3) + " tris, " + meshesUV[i].uv.Length + " UVs");
-			if (meshesUV[i].vertices.Length < 65534 && (meshesUV[i].triangles.Length / 3) < 65534)
+			GameObject newGameObject = new GameObject("MeshUV" + i);
+			newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
+			MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
+			MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
+			meshRenderer.material = baseMaterialUV;
+			// Like setting the colors on the main meshes above, this could be made more effecient, but it doesn't actually matter much
+			meshRenderer.material.mainTexture = textures[meshesUV[i].material].texture;
+			
+			Mesh mesh = new Mesh();
+			if (meshesUV[i].vertices.Length > 65534 || (meshesUV[i].triangles.Length / 3) > 65534)
 			{
-				GameObject newGameObject = new GameObject("MeshUV" + i);
-				newGameObject.transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
-				MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
-				MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
-				meshRenderer.material = baseMaterialUV;
-				// Like setting the colors on the main meshes above, this could be made more effecient, but it doesn't actually matter much
-				meshRenderer.material.mainTexture = textures[meshesUV[i].material].texture;
-				
-				Mesh mesh = new Mesh();
-				meshFilter.mesh = mesh;
-				mesh.vertices = meshesUV[i].vertices;
-				mesh.normals = meshesUV[i].normals;
-				mesh.uv = meshesUV[i].uv;
-				mesh.triangles = meshesUV[i].triangles;
+				mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 			}
-			else
-			{
-				Debug.Log("MeshUV" + i + " is too large to view directly in this program");
-				meshSizeFlag = true;
-			}
+			mesh.vertices = meshesUV[i].vertices;
+			mesh.normals = meshesUV[i].normals;
+			mesh.uv = meshesUV[i].uv;
+			mesh.triangles = meshesUV[i].triangles;
+			meshFilter.mesh = mesh;
 		}
 	}
 	
