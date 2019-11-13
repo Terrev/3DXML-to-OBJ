@@ -134,7 +134,7 @@ public class LxfEditor
 			List<string> variationExclusion = new List<string>(variationExclusionArray);
 			
 			StringBuilder newStringBuilder = new StringBuilder();
-			XmlNodeList partNodes = xmlDocument.DocumentElement.SelectNodes("//a:Part");
+			XmlNodeList partNodes = xmlDocument.DocumentElement.SelectNodes("//Part");
 			for (int i = 0; i < partNodes.Count; i++)
 			{
 				string originalString = partNodes[i].Attributes["materials"].Value;
@@ -171,7 +171,7 @@ public class LxfEditor
 		if (resetColors)
 		{
 			StringBuilder newStringBuilder = new StringBuilder();
-			XmlNodeList partNodes = xmlDocument.DocumentElement.SelectNodes("//a:Part");
+			XmlNodeList partNodes = xmlDocument.DocumentElement.SelectNodes("//Part");
 			for (int i = 0; i < partNodes.Count; i++)
 			{
 				string originalString = partNodes[i].Attributes["materials"].Value;

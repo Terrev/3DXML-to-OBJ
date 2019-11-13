@@ -866,7 +866,7 @@ public class Manager : MonoBehaviour
 			XmlDocument materialsXml = new XmlDocument();
 			materialsXml.LoadXml(File.ReadAllText(materialsXmlPath));
 			
-			XmlNodeList materialNodes = materialsXml.DocumentElement.SelectNodes("//a:Material");
+			XmlNodeList materialNodes = materialsXml.DocumentElement.SelectNodes("//Material");
 			foreach (XmlNode materialNode in materialNodes)
 			{
 				// Add to list of colors
@@ -1029,7 +1029,7 @@ public class Manager : MonoBehaviour
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.LoadXml(File.ReadAllText(xmlPath));
 			
-			XmlNodeList materialNodes = xmlDocument.DocumentElement.SelectNodes("//a:row");
+			XmlNodeList materialNodes = xmlDocument.DocumentElement.SelectNodes("//row");
 			foreach (XmlNode materialNode in materialNodes)
 			{
 				string legoID = materialNode.Attributes["legopaletteid"].Value;
@@ -1111,7 +1111,7 @@ public class Manager : MonoBehaviour
 			Debug.Log("Applying color palette" + paletteChoices2[selectedPalette2]);
 			string[] customColors = File.ReadAllLines(customPaletteFiles[selectedPalette2]);
 			
-			XmlNodeList materialNodes = materialsXml.DocumentElement.SelectNodes("//a:Material");
+			XmlNodeList materialNodes = materialsXml.DocumentElement.SelectNodes("//Material");
 			foreach (XmlNode materialNode in materialNodes)
 			{
 				for (int i = 0; i < customColors.Length; i++)
@@ -1135,7 +1135,7 @@ public class Manager : MonoBehaviour
 	// Appends variations of colors to Materials.xml
 	void GenerateColorVariations(XmlDocument materialsXml)
 	{
-		XmlNodeList materialNodes = materialsXml.DocumentElement.SelectNodes("//a:Material");
+		XmlNodeList materialNodes = materialsXml.DocumentElement.SelectNodes("//Material");
 		for (int i = 0; i < materialNodes.Count; i++)
 		{
 			// Only make variations of solid colors, not transparent colors
