@@ -23,7 +23,7 @@ public class Manager : MonoBehaviour
 	// Directory of exe (up one level from Application.dataPath), set in Start()
 	public static DirectoryInfo directoryInfo;
 	
-	// Paths for unzipping 3DXMLs and LXFMLs
+	// Paths for unzipping 3DXMLs and LXFMLs, also set in Start()
 	public static string unzipPathA = "";
 	public static string unzipPathB = "";
 	
@@ -90,6 +90,7 @@ public class Manager : MonoBehaviour
 	bool exitConfirmation = false;
 	bool export = true;
 	bool weld = true;
+	bool shadows = true;
 	bool forceGarbageCollection = true; // Ok, going by the profiler, doing this *does* seem to improve total allocated memory, so I'll keep it enabled
 	
 	// Things to assign in the inspector
@@ -155,6 +156,16 @@ public class Manager : MonoBehaviour
 		{
 			Debug.Log("No welding setting saved");
 		}
+		
+		if (PlayerPrefs.HasKey("Shadows"))
+		{
+			shadows = PlayerPrefs.GetInt("Shadows")==1?true:false;
+		}
+		else
+		{
+			Debug.Log("No shadows setting saved");
+		}
+		UpdateShadows();
 		
 		if (PlayerPrefs.HasKey("Selected Palette"))
 		{
@@ -360,14 +371,9 @@ public class Manager : MonoBehaviour
 			}
 			if (GUI.Button(new Rect(10, 40, 110, 25), "Toggle shadows"))
 			{
-				if (sceneLight.shadows == LightShadows.Soft)
-				{
-					sceneLight.shadows = LightShadows.None;
-				}
-				else
-				{
-					sceneLight.shadows = LightShadows.Soft;
-				}
+				shadows = !shadows;
+				UpdateShadows();
+				PlayerPrefs.SetInt("Shadows", shadows?1:0);
 			}
 			if (GUI.Button(new Rect(10, 70, 110, 25), "Toggle wireframe"))
 			{
@@ -389,6 +395,18 @@ public class Manager : MonoBehaviour
 			{
 				exitConfirmation = false;
 			}
+		}
+	}
+	
+	void UpdateShadows()
+	{
+		if (shadows)
+		{
+			sceneLight.shadows = LightShadows.Soft;
+		}
+		else
+		{
+			sceneLight.shadows = LightShadows.None;
 		}
 	}
 	
