@@ -486,7 +486,13 @@ public class Manager : MonoBehaviour
 						XmlNodeList xmlTextures = xmlDocument.DocumentElement.SelectNodes("//a:Pixel", xmlNamespaceManager);
 						foreach (XmlNode texture in xmlTextures)
 						{
-							Texture2D tex1 = new Texture2D(int.Parse(texture.Attributes["width"].Value), int.Parse(texture.Attributes["height"].Value), TextureFormat.RGBA32, false);
+							TextureFormat textureFormat = TextureFormat.RGBA32;
+							if (texture.Attributes["format"].Value == "RGB")
+							{
+								textureFormat = TextureFormat.RGB24;
+							}
+							
+							Texture2D tex1 = new Texture2D(int.Parse(texture.Attributes["width"].Value), int.Parse(texture.Attributes["height"].Value), textureFormat, false);
 							byte[] array = Convert.FromBase64String(texture.SelectSingleNode(".//a:Pixels", xmlNamespaceManager).InnerText);
 							tex1.LoadRawTextureData(array);
 							tex1.Apply();
@@ -974,7 +980,7 @@ public class Manager : MonoBehaviour
 					text.Add(decorationName.Substring(0, decorationName.Length-4) + "," + Md5Sum(ourNewTexture.EncodeToPNG()));
 				}
 				
-				// RGB (only one texture like this in LDD at the time of this writing)
+				// RGB (only one texture like this in LDD at the time of this writing, could change the Texture2D format to RGB24 but it makes no difference in the end so whaaatever)
 				else if (pngReader.ImgInfo.Channels == 3)
 				{
 					byte[] rawTextureData = new byte[height * width * 4];
