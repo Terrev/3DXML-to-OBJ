@@ -91,7 +91,7 @@ public class Manager : MonoBehaviour
 	bool export = true;
 	bool weld = true;
 	bool shadows = true;
-	bool forceGarbageCollection = true; // Ok, going by the profiler, doing this *does* seem to improve total allocated memory, so I'll keep it enabled
+	bool forceGarbageCollection = true; // This only saves a relatively tiny amount of total allocated memory (like 20 MB with my test model), but whatever, I guess I'll leave it in
 	
 	// Things to assign in the inspector
 	public Light sceneLight;
@@ -225,6 +225,13 @@ public class Manager : MonoBehaviour
 	
 	void OnGUI()
 	{
+		/*
+		if (GUI.Button(new Rect(Screen.width - 80, 40, 70, 25), forceGarbageCollection.ToString()))
+		{
+			forceGarbageCollection = !forceGarbageCollection;
+		}
+		*/
+		
 		if (atStart)
 		{
 			if (advancedMode)
@@ -384,6 +391,7 @@ public class Manager : MonoBehaviour
 				GUI.Box(new Rect(0, Screen.height - 40, Screen.width, 40), "Exported to:\n" + exportPath);
 			}
 		}
+		
 		if (exitConfirmation)
 		{
 			GUI.Box(new Rect(Screen.width / 2 - 55, Screen.height / 2 - 30, 110, 60), "Exit?");
