@@ -37,9 +37,9 @@ public class MeshHandler
 		{
 			sb.Append(string.Format("vn {0} {1} {2}\n",v.x,v.y,v.z));
 		}
-		sb.Append("\n");
 		if (m.uv != null)
 		{
+			sb.Append("\n");
 			foreach(Vector3 v in m.uv) 
 			{
 				sb.Append(string.Format("vt {0} {1}\n",v.x,v.y));
@@ -84,12 +84,19 @@ public class ObjExporter
 			MeshHandler.Start();
 			StringBuilder meshString = new StringBuilder();
 			meshString.Append("mtllib ").Append(Manager.exportFileName).Append(".mtl\n");
+			if (!Manager.groups)
+			{
+				meshString.Append("\ng ").Append(Manager.exportFileName).Append("\n");
+			}
 			for (int i = 0; i < Manager.meshes.Count; i++)
 			{
 				if (!exportExclusion.Contains(Manager.colors[Manager.meshes[i].material].id.ToString()))
 				{
-					meshString.Append("\ng ").Append("Mesh" + i).Append("\n");
-					meshString.Append("usemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
+					if (Manager.groups)
+					{
+						meshString.Append("\ng ").Append("Mesh" + i);
+					}
+					meshString.Append("\nusemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
 					meshString.Append(MeshHandler.MeshToString(Manager.meshes[i]));
 				}
 			}
@@ -118,11 +125,18 @@ public class ObjExporter
 			MeshHandler.Start();
 			StringBuilder meshStringUV = new StringBuilder();
 			meshStringUV.Append("mtllib ").Append(Manager.exportFileName).Append("_UV.mtl\n");
+			if (!Manager.groups)
+			{
+				meshStringUV.Append("\ng ").Append(Manager.exportFileName).Append("_UV\n");
+			}
 			for (int i = 0; i < Manager.meshesUV.Count; i++)
 			{
-				meshStringUV.Append("\ng ").Append("MeshUV" + i).Append("\n");
+				if (Manager.groups)
+				{
+					meshStringUV.Append("\ng ").Append("MeshUV" + i);
+				}
 				// asdasjdhkjfsfgkjlh
-				meshStringUV.Append("usemtl ").Append(Manager.textures[Manager.meshesUV[i].material].textureName).Append("\n\n");
+				meshStringUV.Append("\nusemtl ").Append(Manager.textures[Manager.meshesUV[i].material].textureName).Append("\n\n");
 				meshStringUV.Append(MeshHandler.MeshToString(Manager.meshesUV[i]));
 				if (!Manager.usedTextures.Contains(Manager.textures[Manager.meshesUV[i].material]))
 				{

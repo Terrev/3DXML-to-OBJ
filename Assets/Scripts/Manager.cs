@@ -90,6 +90,7 @@ public class Manager : MonoBehaviour
 	bool exitConfirmation = false;
 	bool export = true;
 	bool weld = true;
+	public static bool groups = true;
 	bool shadows = true;
 	bool forceGarbageCollection = true; // This only saves a relatively tiny amount of total allocated memory (like 20 MB with my test model), but whatever, I guess I'll leave it in
 	
@@ -155,6 +156,15 @@ public class Manager : MonoBehaviour
 		else
 		{
 			Debug.Log("No welding setting saved");
+		}
+		
+		if (PlayerPrefs.HasKey("Groups"))
+		{
+			groups = PlayerPrefs.GetInt("Groups")==1?true:false;
+		}
+		else
+		{
+			Debug.Log("No groups setting saved");
 		}
 		
 		if (PlayerPrefs.HasKey("Shadows"))
@@ -297,8 +307,9 @@ public class Manager : MonoBehaviour
 				}
 				*/
 				weld = GUI.Toggle(new Rect(15, 330, 240, 25), weld, " Weld duplicate vertices");
-				GUI.Label (new Rect(15, 350, 240, 25), "Color replacement:");
-				selectedPalette = GUI.SelectionGrid (new Rect(15, 370, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
+				groups = GUI.Toggle(new Rect(15, 350, 240, 25), groups, " Write meshes to separate groups");
+				GUI.Label (new Rect(15, 370, 240, 25), "Color replacement:");
+				selectedPalette = GUI.SelectionGrid (new Rect(15, 390, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
 				
 				// Materials.xml editing
 				int paletteSelectionHeight = 22 * paletteChoices2.Count;
@@ -359,8 +370,9 @@ public class Manager : MonoBehaviour
 					DoStuff(export, weld);
 				}
 				weld = GUI.Toggle(new Rect(15, 190, 240, 25), weld, " Weld duplicate vertices");
-				GUI.Label (new Rect(15, 210, 240, 25), "Color replacement:");
-				selectedPalette = GUI.SelectionGrid (new Rect(15, 230, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
+				groups = GUI.Toggle(new Rect(15, 210, 240, 25), groups, " Write meshes to separate groups");
+				GUI.Label (new Rect(15, 230, 240, 25), "Color replacement:");
+				selectedPalette = GUI.SelectionGrid (new Rect(15, 250, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
 				
 				if (GUI.Button(new Rect(Screen.width - 80, 10, 70, 25), "Advanced"))
 				{
@@ -421,6 +433,7 @@ public class Manager : MonoBehaviour
 	void DoStuff(bool exportModel, bool weldModel)
 	{
 		PlayerPrefs.SetInt("Weld", weld?1:0);
+		PlayerPrefs.SetInt("Groups", groups?1:0);
 		PlayerPrefs.SetString("Selected Palette", paletteChoices[selectedPalette]);
 		
 		Load3dxml();
