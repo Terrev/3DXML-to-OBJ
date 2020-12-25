@@ -90,13 +90,19 @@ public class ObjExporter
 			{
 				List<CustomMesh> meshesTransparent = new List<CustomMesh>();
 
-				meshString.Append("\ng Opaque\n");
+				bool dumbOpaqueFlag = false;
 				for (int i = 0; i < Manager.meshes.Count; i++)
 				{
 					if (!exportExclusion.Contains(Manager.colors[Manager.meshes[i].material].id.ToString()))
 					{
 						if (Manager.colors[Manager.meshes[i].material].rgba.a == 1)
 						{
+							// So we don't write this group definition if no opaque geometry exists
+							if (dumbOpaqueFlag == false)
+							{
+								meshString.Append("\ng Opaque\n");
+								dumbOpaqueFlag = true;
+							}
 							meshString.Append("\nusemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
 							meshString.Append(MeshHandler.MeshToString(Manager.meshes[i]));
 						}
