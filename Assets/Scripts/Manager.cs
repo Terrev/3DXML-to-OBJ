@@ -18,6 +18,13 @@ using Hjg.Pngcs;
 // Maybe with .dae exporting and vertex colors and stuff
 // AT THE MOMENT I am very tired of working on this, so as long as it works, whatever, good enough lol
 
+public enum WhatMeshesToMerge
+{
+	None,
+	All,
+	OpaqueOnly
+}
+
 public class Manager : MonoBehaviour
 {
 	// Directory of exe (up one level from Application.dataPath), set in Start()
@@ -69,6 +76,7 @@ public class Manager : MonoBehaviour
 	bool resetColors = false;
 	int colorVariationSelection = 0;
 	string[] colorVariationOptions = new string[] {" No edit", " Add color variation", " Remove color variation"};
+	string[] meshMergingOptions = new string[] { " None", " All", " Opaque only" };
 	public static float variationStrength = 6.0f;
 	
 	// Materials.xml editing
@@ -90,7 +98,7 @@ public class Manager : MonoBehaviour
 	bool exitConfirmation = false;
 	bool export = true;
 	bool weld = true;
-	public static bool groups = true;
+	public static WhatMeshesToMerge whatMeshesToMerge = WhatMeshesToMerge.None;
 	bool shadows = true;
 	bool forceGarbageCollection = true; // This only saves a relatively tiny amount of total allocated memory (like 20 MB with my test model), but whatever, I guess I'll leave it in
 	
@@ -158,13 +166,13 @@ public class Manager : MonoBehaviour
 			Debug.Log("No welding setting saved");
 		}
 		
-		if (PlayerPrefs.HasKey("Groups"))
+		if (PlayerPrefs.HasKey("What Meshes To Merge"))
 		{
-			groups = PlayerPrefs.GetInt("Groups")==1?true:false;
+			whatMeshesToMerge = (WhatMeshesToMerge)PlayerPrefs.GetInt("What Meshes To Merge");
 		}
 		else
 		{
-			Debug.Log("No groups setting saved");
+			Debug.Log("No mesh merging setting saved");
 		}
 		
 		if (PlayerPrefs.HasKey("Shadows"))
@@ -307,9 +315,15 @@ public class Manager : MonoBehaviour
 				}
 				*/
 				weld = GUI.Toggle(new Rect(15, 330, 240, 25), weld, " Weld duplicate vertices");
-				groups = GUI.Toggle(new Rect(15, 350, 240, 25), groups, " Write meshes to separate groups");
-				GUI.Label (new Rect(15, 370, 240, 25), "Color replacement:");
-				selectedPalette = GUI.SelectionGrid (new Rect(15, 390, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
+				GUI.Label(new Rect(15, 350, 240, 25), "Merge meshes/groups:");
+				whatMeshesToMerge = (WhatMeshesToMerge)GUI.SelectionGrid(new Rect(15, 370, 240, 58), (int)whatMeshesToMerge, meshMergingOptions, 1, "toggle");
+				if ((int)whatMeshesToMerge > 2)
+				{
+					Debug.Log("Uh");
+					whatMeshesToMerge = WhatMeshesToMerge.None;
+				}
+				GUI.Label (new Rect(15, 430, 240, 25), "Color replacement:");
+				selectedPalette = GUI.SelectionGrid (new Rect(15, 450, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
 				
 				// Materials.xml editing
 				int paletteSelectionHeight = 22 * paletteChoices2.Count;
@@ -370,9 +384,15 @@ public class Manager : MonoBehaviour
 					DoStuff(export, weld);
 				}
 				weld = GUI.Toggle(new Rect(15, 190, 240, 25), weld, " Weld duplicate vertices");
-				groups = GUI.Toggle(new Rect(15, 210, 240, 25), groups, " Write meshes to separate groups");
-				GUI.Label (new Rect(15, 230, 240, 25), "Color replacement:");
-				selectedPalette = GUI.SelectionGrid (new Rect(15, 250, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
+				GUI.Label(new Rect(15, 210, 240, 25), "Merge meshes/groups:");
+				whatMeshesToMerge = (WhatMeshesToMerge)GUI.SelectionGrid(new Rect(15, 230, 240, 58), (int)whatMeshesToMerge, meshMergingOptions, 1, "toggle");
+				if ((int)whatMeshesToMerge > 2)
+				{
+					Debug.Log("Uh");
+					whatMeshesToMerge = WhatMeshesToMerge.None;
+				}
+				GUI.Label (new Rect(15, 290, 240, 25), "Color replacement:");
+				selectedPalette = GUI.SelectionGrid (new Rect(15, 310, 240, 22 * paletteChoices.Count), selectedPalette, paletteChoices.ToArray(), 1, "toggle");
 				
 				if (GUI.Button(new Rect(Screen.width - 80, 10, 70, 25), "Advanced"))
 				{
@@ -433,7 +453,7 @@ public class Manager : MonoBehaviour
 	void DoStuff(bool exportModel, bool weldModel)
 	{
 		PlayerPrefs.SetInt("Weld", weld?1:0);
-		PlayerPrefs.SetInt("Groups", groups?1:0);
+		PlayerPrefs.SetInt("What Meshes To Merge", (int)whatMeshesToMerge);
 		PlayerPrefs.SetString("Selected Palette", paletteChoices[selectedPalette]);
 		
 		Load3dxml();

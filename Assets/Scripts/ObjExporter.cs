@@ -84,22 +84,56 @@ public class ObjExporter
 			MeshHandler.Start();
 			StringBuilder meshString = new StringBuilder();
 			meshString.Append("mtllib ").Append(Manager.exportFileName).Append(".mtl\n");
-			if (!Manager.groups)
+
+			// New feature hacked in - this is the part where I stop caring again
+			if (Manager.whatMeshesToMerge == WhatMeshesToMerge.OpaqueOnly)
 			{
-				meshString.Append("\ng ").Append(Manager.exportFileName).Append("\n");
-			}
-			for (int i = 0; i < Manager.meshes.Count; i++)
-			{
-				if (!exportExclusion.Contains(Manager.colors[Manager.meshes[i].material].id.ToString()))
+				List<CustomMesh> meshesTransparent = new List<CustomMesh>();
+
+				meshString.Append("\ng Opaque\n");
+				for (int i = 0; i < Manager.meshes.Count; i++)
 				{
-					if (Manager.groups)
+					if (!exportExclusion.Contains(Manager.colors[Manager.meshes[i].material].id.ToString()))
 					{
-						meshString.Append("\ng ").Append("Mesh" + i);
+						if (Manager.colors[Manager.meshes[i].material].rgba.a == 1)
+						{
+							meshString.Append("\nusemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
+							meshString.Append(MeshHandler.MeshToString(Manager.meshes[i]));
+						}
+						else
+						{
+							meshesTransparent.Add(Manager.meshes[i]);
+						}
 					}
-					meshString.Append("\nusemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
-					meshString.Append(MeshHandler.MeshToString(Manager.meshes[i]));
+				}
+				for (int i = 0; i < meshesTransparent.Count; i++)
+				{
+					meshString.Append("\ng Transparent").Append(i).Append("\n");
+					meshString.Append("\nusemtl ").Append(Manager.colors[meshesTransparent[i].material].legoName).Append("\n\n");
+					meshString.Append(MeshHandler.MeshToString(meshesTransparent[i]));
 				}
 			}
+			// The old behavior - export all as one group with the file name, or individual groups/meshes as they were in the original 3DXML
+			else
+			{
+				if (Manager.whatMeshesToMerge == WhatMeshesToMerge.All)
+				{
+					meshString.Append("\ng ").Append(Manager.exportFileName).Append("\n");
+				}
+				for (int i = 0; i < Manager.meshes.Count; i++)
+				{
+					if (!exportExclusion.Contains(Manager.colors[Manager.meshes[i].material].id.ToString()))
+					{
+						if (Manager.whatMeshesToMerge == WhatMeshesToMerge.None)
+						{
+							meshString.Append("\ng Mesh").Append(i).Append("\n");
+						}
+						meshString.Append("\nusemtl ").Append(Manager.colors[Manager.meshes[i].material].legoName).Append("\n\n");
+						meshString.Append(MeshHandler.MeshToString(Manager.meshes[i]));
+					}
+				}
+			}
+
 			File.WriteAllText(Manager.exportPath + "\\" + Manager.exportFileName + ".obj", meshString.ToString());
 			Debug.Log("Saved file " + Manager.exportFileName + ".obj");
 			
@@ -125,15 +159,15 @@ public class ObjExporter
 			MeshHandler.Start();
 			StringBuilder meshStringUV = new StringBuilder();
 			meshStringUV.Append("mtllib ").Append(Manager.exportFileName).Append("_UV.mtl\n");
-			if (!Manager.groups)
+			if (Manager.whatMeshesToMerge == WhatMeshesToMerge.All)
 			{
 				meshStringUV.Append("\ng ").Append(Manager.exportFileName).Append("_UV\n");
 			}
 			for (int i = 0; i < Manager.meshesUV.Count; i++)
 			{
-				if (Manager.groups)
+				if (Manager.whatMeshesToMerge == WhatMeshesToMerge.None || Manager.whatMeshesToMerge == WhatMeshesToMerge.OpaqueOnly)
 				{
-					meshStringUV.Append("\ng ").Append("MeshUV" + i);
+					meshStringUV.Append("\ng MeshUV").Append(i).Append("\n");
 				}
 				// asdasjdhkjfsfgkjlh
 				meshStringUV.Append("\nusemtl ").Append(Manager.textures[Manager.meshesUV[i].material].textureName).Append("\n\n");
@@ -151,7 +185,7 @@ public class ObjExporter
 			for (int i = 0; i < Manager.usedTextures.Count; i++)
 			{
 				mtlStringUV.Append("newmtl ").Append(Manager.usedTextures[i].textureName).Append("\n");
-				mtlStringUV.Append("Kd 1 1 1").Append("\n");
+				mtlStringUV.Append("Kd 1 1 1\n");
 				mtlStringUV.Append("map_Kd ").Append(Manager.usedTextures[i].textureName).Append(".png\n");
 				mtlStringUV.Append("map_d ").Append(Manager.usedTextures[i].textureName).Append(".png\n");
 				File.WriteAllBytes(Manager.exportPath + "\\" + Manager.usedTextures[i].textureName + ".png", Manager.usedTextures[i].png);
